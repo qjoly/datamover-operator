@@ -27,6 +27,6 @@ jobs:
           restore-keys: |
             mkdocs-material-
 
-      - run: pip install mkdocs-gitbook
+      - run: pip install mkdocs-gitbook mkdocs
 
       - run: mkdocs gh-deploy --force
