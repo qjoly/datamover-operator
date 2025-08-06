@@ -5,7 +5,7 @@
 
 A Kubernetes operator that automates the process of cloning PersistentVolumeClaims (PVCs) and synchronizing their data to remote storage using rclone.
 
-## Philosophy
+## Philosophy
 
 There are few projects that handle backups on Kubernetes (Velero, Volsync, k8up...), but none of them properly meet my needs:
 
