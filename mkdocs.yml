@@ -1,5 +1,5 @@
 site_name: Datamover Operator
 theme:
-  name: terminal
+  name: gitbook
 site_url: https://qjoly.github.io/datamover-operator
 
