@@ -1,0 +1,49 @@
+apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  labels:
+    app.kubernetes.io/name: datamover-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: datamover-without-timestamp
+spec:
+  sourcePvc: "my-pvc"
+  secretName: "my-secret"
+  addTimestampPrefix: false  # Data will be synced to bucket root
+  deletePvcAfterBackup: false  # Keep cloned PVC for manual inspection
+  additionalEnv:
+    - name: "BACKUP_TYPE"
+      value: "full"
+---
+apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  labels:
+    app.kubernetes.io/name: datamover-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: datamover-with-timestamp-and-cleanup
+spec:
+  sourcePvc: "my-pvc"
+  secretName: "my-secret"
+  addTimestampPrefix: true  # Data will be synced to timestamped folder
+  deletePvcAfterBackup: true  # Automatically cleanup cloned PVC
+  additionalEnv:
+    - name: "BACKUP_TYPE"
+      value: "incremental"
+---
+apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  labels:
+    app.kubernetes.io/name: datamover-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: datamover-archive-backup
+spec:
+  sourcePvc: "production-data"
+  secretName: "archive-credentials"
+  addTimestampPrefix: true  # Organized archive with timestamps
+  deletePvcAfterBackup: true  # Clean up storage after successful backup
+  additionalEnv:
+    - name: "BACKUP_TYPE"
+      value: "archive"
+    - name: "RETENTION_DAYS"
+      value: "365"

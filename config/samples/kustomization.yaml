@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- datamover_v1alpha1_datamover.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

@@ -1,0 +1,27 @@
+apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  name: my-datamover-instance
+spec:
+  sourcePvc: cephfs-pvc
+  secretName: example-bucket
+  addTimestampPrefix: true  # Creates a timestamped folder in the bucket
+  deletePvcAfterBackup: true
+  additionalEnv:
+    - name: "TLS_HOST"
+      value: "false"
+    - name: "BUCKET_HOST"
+      valueFrom:
+        configMapKeyRef:
+          name: example-bucket
+          key: BUCKET_HOST
+    - name: "BUCKET_PORT"
+      valueFrom:
+        configMapKeyRef:
+          name: example-bucket
+          key: BUCKET_PORT
+    - name: "BUCKET_NAME"
+      valueFrom:
+        configMapKeyRef:
+          name: example-bucket
+          key: BUCKET_NAME

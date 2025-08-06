@@ -1,0 +1,239 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  OPERATOR_IMAGE_NAME: qjoly/datamover-operator
+  RCLONE_IMAGE_NAME: qjoly/datamover-rclone
+  HELM_CHART_NAME: qjoly/datamover-operator-chart
+
+jobs:
+  build-operator:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for operator
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.OPERATOR_IMAGE_NAME }}
+          tags: |
+            # For main branch, tag as unstable
+            type=raw,value=unstable,enable={{is_default_branch}}
+            # For tags, use the tag name without 'v' prefix
+            type=match,pattern=v(.*),group=1,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            # For tags, also tag as latest
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            # For PRs, use PR number
+            type=ref,event=pr
+
+      - name: Build and push operator image
+        id: build-operator
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Generate artifact attestation for operator
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.OPERATOR_IMAGE_NAME }}
+          subject-digest: ${{ steps.build-operator.outputs.digest }}
+          push-to-registry: true
+
+  build-rclone:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for rclone
+        id: meta-rclone
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.RCLONE_IMAGE_NAME }}
+          tags: |
+            # For main branch, tag as unstable
+            type=raw,value=unstable,enable={{is_default_branch}}
+            # For tags, use the tag name without 'v' prefix
+            type=match,pattern=v(.*),group=1,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            # For tags, also tag as latest
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            # For PRs, use PR number
+            type=ref,event=pr
+
+      - name: Build and push rclone image
+        id: build-rclone
+        uses: docker/build-push-action@v5
+        with:
+          context: ./dataMoverImage
+          file: ./dataMoverImage/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta-rclone.outputs.tags }}
+          labels: ${{ steps.meta-rclone.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Generate artifact attestation for rclone
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.RCLONE_IMAGE_NAME }}
+          subject-digest: ${{ steps.build-rclone.outputs.digest }}
+          push-to-registry: true
+
+  build-helm-chart:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.13.0'
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Helm chart
+        id: meta-helm
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.HELM_CHART_NAME }}
+          tags: |
+            # For main branch, tag as unstable
+            type=raw,value=0.0.0,enable={{is_default_branch}}
+            # For tags, use the tag name without 'v' prefix
+            type=match,pattern=v(.*),group=1,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            # For tags, also tag as latest
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            # For PRs, use PR number
+            type=ref,event=pr
+
+      - name: Package and push Helm chart
+        id: package-helm
+        run: |
+          # Create chart packages directory
+          mkdir -p ./chart-packages/
+          
+          # Extract version from Git tag or use default
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            # Extract version from tag (remove 'v' prefix)
+            CHART_VERSION=${GITHUB_REF#refs/tags/v}
+            echo "Using tag version: $CHART_VERSION"
+            
+            # Update Chart.yaml with the tag version
+            sed -i "s/^version:.*/version: $CHART_VERSION/" dist/chart/Chart.yaml
+            sed -i "s/^appVersion:.*/appVersion: $CHART_VERSION/" dist/chart/Chart.yaml
+          else
+            # For non-tag builds, use existing version from Chart.yaml
+            CHART_VERSION=$(helm show chart dist/chart/ | grep '^version:' | awk '{print $2}')
+            echo "Using existing chart version: $CHART_VERSION"
+          fi
+          
+          # Package the Helm chart
+          helm package dist/chart/ --destination ./chart-packages/
+          
+          # Find the actual package file created by helm
+          CHART_PACKAGE=$(ls ./chart-packages/*.tgz | xargs -n 1 basename | head -1)
+          echo "Chart package: $CHART_PACKAGE"
+          
+          # Generate digest of the chart package
+          CHART_DIGEST=$(sha256sum "./chart-packages/${CHART_PACKAGE}" | awk '{print "sha256:" $1}')
+          echo "Chart digest: $CHART_DIGEST"
+          echo "chart-digest=$CHART_DIGEST" >> $GITHUB_OUTPUT
+          echo "chart-package-path=./chart-packages/${CHART_PACKAGE}" >> $GITHUB_OUTPUT
+          
+          # Push chart to OCI registry
+          echo "Pushing chart to OCI registry..."
+          helm push "./chart-packages/${CHART_PACKAGE}" "oci://${{ env.REGISTRY }}/${{ github.repository_owner }}"
+
+      - name: Generate artifact attestation for Helm chart
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.HELM_CHART_NAME }}
+          subject-digest: ${{ steps.package-helm.outputs.chart-digest }}
+          push-to-registry: true
+
+  summary:
+    runs-on: ubuntu-latest
+    needs: [build-operator, build-rclone, build-helm-chart]
+    if: always()
+    steps:
+      - name: Job summary
+        run: |
+          echo "## 🚀 Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Images built:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Operator**: \`${{ env.REGISTRY }}/${{ env.OPERATOR_IMAGE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Rclone**: \`${{ env.REGISTRY }}/${{ env.RCLONE_IMAGE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Helm Chart**: \`${{ env.REGISTRY }}/${{ env.HELM_CHART_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Build Status:" >> $GITHUB_STEP_SUMMARY
+          echo "- Operator Build: ${{ needs.build-operator.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Rclone Build: ${{ needs.build-rclone.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Helm Chart Build: ${{ needs.build-helm-chart.result }}" >> $GITHUB_STEP_SUMMARY
+        env:
+          REGISTRY: ${{ env.REGISTRY }}
+          OPERATOR_IMAGE_NAME: ${{ env.OPERATOR_IMAGE_NAME }}
+          RCLONE_IMAGE_NAME: ${{ env.RCLONE_IMAGE_NAME }}
+          HELM_CHART_NAME: ${{ env.HELM_CHART_NAME }}

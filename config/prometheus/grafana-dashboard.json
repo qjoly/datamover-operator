@@ -1,0 +1,270 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "DataMover Operator Metrics",
+    "tags": ["kubernetes", "datamover", "operator"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "DataMover Operations Total",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(datamover_operations_total[5m])) by (phase, status)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "displayMode": "list",
+              "orientation": "horizontal"
+            },
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Phase Duration",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(datamover_phase_duration_seconds_bucket[5m])) by (le, phase))",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Current Phase Distribution",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum(datamover_current_phase) by (name, namespace)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "text": "Initial"
+                  },
+                  "1": {
+                    "text": "Creating PVC"
+                  },
+                  "2": {
+                    "text": "PVC Ready"
+                  },
+                  "3": {
+                    "text": "Creating Pod"
+                  },
+                  "4": {
+                    "text": "Completed"
+                  },
+                  "5": {
+                    "text": "Failed"
+                  }
+                },
+                "type": "value"
+              }
+            ]
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "PVC Clone Operations",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(datamover_pvc_clone_operations_total[5m])) by (status)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 0.1
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 12,
+          "y": 8
+        }
+      },
+      {
+        "id": 5,
+        "title": "Pod Creation Operations",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(datamover_pod_creation_operations_total[5m])) by (status)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 0.1
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 18,
+          "y": 8
+        }
+      },
+      {
+        "id": 6,
+        "title": "Data Sync Operations",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(datamover_data_sync_operations_total[5m])) by (status)",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 12,
+          "y": 12
+        }
+      },
+      {
+        "id": 7,
+        "title": "Error Rate by Type",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(datamover_errors_total[5m])) by (error_type, phase)",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Errors per second",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 18,
+          "y": 12
+        }
+      },
+      {
+        "id": 8,
+        "title": "DataMover Instances Over Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "count(datamover_current_phase) by (namespace)",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Number of instances",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 16
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "templating": {
+      "list": [
+        {
+          "name": "namespace",
+          "type": "query",
+          "query": "label_values(datamover_operations_total, namespace)",
+          "refresh": 1,
+          "includeAll": true,
+          "allValue": ".*"
+        }
+      ]
+    },
+    "refresh": "10s",
+    "schemaVersion": 30,
+    "version": 1
+  }
+}

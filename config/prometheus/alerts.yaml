@@ -1,0 +1,87 @@
+groups:
+  - name: datamover-operator
+    rules:
+      - alert: DataMoverHighFailureRate
+        expr: |
+          (
+            sum(rate(datamover_operations_total{status="failure"}[5m])) by (namespace) /
+            sum(rate(datamover_operations_total[5m])) by (namespace)
+          ) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High DataMover failure rate in namespace {{ $labels.namespace }}"
+          description: "DataMover operations are failing at a rate of {{ $value | humanizePercentage }} in namespace {{ $labels.namespace }}."
+
+      - alert: DataMoverPVCCloneFailure
+        expr: increase(datamover_pvc_clone_operations_total{status="failure"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "DataMover PVC clone failures detected"
+          description: "{{ $value }} PVC clone operations have failed in namespace {{ $labels.namespace }} in the last 5 minutes."
+
+      - alert: DataMoverPodCreationFailure
+        expr: increase(datamover_pod_creation_operations_total{status="failure"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "DataMover pod creation failures detected"
+          description: "{{ $value }} pod creation operations have failed in namespace {{ $labels.namespace }} in the last 5 minutes."
+
+      - alert: DataMoverPhaseDurationHigh
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(datamover_phase_duration_seconds_bucket[5m])) by (le, phase, namespace)
+          ) > 300
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "DataMover phase duration is high"
+          description: "The 95th percentile duration for phase {{ $labels.phase }} in namespace {{ $labels.namespace }} is {{ $value }}s, which exceeds 5 minutes."
+
+      - alert: DataMoverStuckInPhase
+        expr: |
+          count by (name, namespace, phase) (
+            datamover_current_phase{phase!="4",phase!="5"} unless on(name, namespace) 
+            changes(datamover_current_phase[10m])
+          ) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "DataMover {{ $labels.name }} stuck in phase {{ $labels.phase }}"
+          description: "DataMover {{ $labels.name }} in namespace {{ $labels.namespace }} has been in phase {{ $labels.phase }} for more than 10 minutes without progress."
+
+      - alert: DataMoverErrorRateHigh
+        expr: |
+          sum(rate(datamover_errors_total[5m])) by (namespace, error_type) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate for DataMover operations"
+          description: "Error rate for {{ $labels.error_type }} in namespace {{ $labels.namespace }} is {{ $value }} errors per second."
+
+      - alert: DataMoverNoRecentOperations
+        expr: |
+          absent_over_time(datamover_operations_total[1h])
+        for: 30m
+        labels:
+          severity: info
+        annotations:
+          summary: "No DataMover operations in the last hour"
+          description: "No DataMover operations have been detected in the last hour. This might indicate the operator is not functioning or there are no DataMover resources."
+
+      - alert: DataMoverDataSyncFailure
+        expr: increase(datamover_data_sync_operations_total{status="failure"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "DataMover data synchronization failures detected"
+          description: "{{ $value }} data sync operations have failed in namespace {{ $labels.namespace }} in the last 5 minutes."

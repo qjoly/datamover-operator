@@ -1,0 +1,7 @@
+apiVersion: v2
+name: datamover-operator-chart
+description: Datamover Operator is a Kubernetes operator that take Snapshot of PVCs and move data to an S3 compatible storage using rclone.
+type: application
+version: v0.0.0 # Will be replaced by the build script
+appVersion: "v0.0.0" # Will be replaced by the build script
+icon: "https://example.com/icon.png"

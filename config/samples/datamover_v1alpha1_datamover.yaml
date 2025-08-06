@@ -1,0 +1,17 @@
+apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  labels:
+    app.kubernetes.io/name: datamover-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: datamover-sample
+spec:
+  sourcePvc: "my-pvc"
+  secretName: "my-secret"
+  addTimestampPrefix: true
+  deletePvcAfterBackup: true  # Automatically cleanup cloned PVC after backup
+  additionalEnv:
+    - name: "CUSTOM_VAR"
+      value: "custom-value"
+    - name: "ENVIRONMENT"
+      value: "production"
