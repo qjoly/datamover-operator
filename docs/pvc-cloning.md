@@ -19,30 +19,13 @@ PVC cloning is the foundation of the DataMover Operator. It creates a copy of an
 
 Cloned PVCs follow this naming pattern:
 ```
-restored-<source-pvc-name>-<timestamp>
+<source-pvc-name>-cloned-<timestamp>
 ```
 
 Example:
 - Source PVC: `web-app-data`
-- Cloned PVC: `restored-web-app-data-20240806143052`
+- Cloned PVC: `web-app-data-cloned-20240806143052`
 
-## CSI Driver Requirements
-
-### Supported Operations
-
-Your CSI driver must support the `CLONE_VOLUME` capability. This is indicated in the CSI driver specification.
-
-### Verification Commands
-
-Check if your storage class supports cloning:
-
-```bash
-# Check storage class capabilities
-kubectl get storageclass -o yaml
-
-# Look for volume cloning support in CSI driver
-kubectl get csidriver -o yaml | grep -A 10 -B 10 clone
-```
 
 ### Compatible CSI Drivers
 
@@ -52,7 +35,7 @@ kubectl get csidriver -o yaml | grep -A 10 -B 10 clone
 | GCE PD CSI | ✅ Yes | Regional and zonal disks |
 | Azure Disk CSI | ✅ Yes | Premium and Standard SSDs |
 | vSphere CSI | ✅ Yes | vSAN and VMFS datastores |
-| Ceph RBD CSI | ✅ Yes | RBD clone feature |
+| Ceph CSI | ✅ Yes | RBD/CephFS clone feature |
 | OpenEBS | ⚠️ Partial | Depends on storage engine |
 
 ## Clone Configuration

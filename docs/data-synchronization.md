@@ -25,39 +25,7 @@ This image includes:
 3. **Sync Execution**: Rclone syncs `/data/` to configured remote destination
 4. **Completion**: Job completes with success/failure status
 
-### Rclone Command
-
-The operator executes rclone with optimized settings:
-
-```bash
-rclone sync /data/ remote:bucket/path \
-  --progress \
-  --stats 30s \
-  --transfers 4 \
-  --checkers 8 \
-  --retries 3
-```
-
 ## Supported Storage Backends
-
-### AWS S3
-
-**Configuration**:
-```yaml
-AWS_ACCESS_KEY_ID: your-access-key
-AWS_SECRET_ACCESS_KEY: your-secret-key
-AWS_REGION: us-west-2
-BUCKET_HOST: s3.amazonaws.com
-BUCKET_NAME: my-backup-bucket
-BUCKET_PORT: "443"
-TLS_HOST: "true"
-```
-
-**Features**:
-- Multi-part uploads for large files
-- Server-side encryption support
-- Cross-region replication
-- Storage class optimization
 
 ### MinIO
 
@@ -71,57 +39,6 @@ BUCKET_NAME: backups
 BUCKET_PORT: "9000"
 TLS_HOST: "false"
 ```
-
-**Features**:
-- S3-compatible API
-- Self-hosted solution
-- High performance
-- Easy to setup and manage
-
-### Google Cloud Storage
-
-**Configuration**:
-```yaml
-AWS_ACCESS_KEY_ID: your-access-key
-AWS_SECRET_ACCESS_KEY: your-secret-key
-AWS_REGION: auto
-BUCKET_HOST: storage.googleapis.com
-BUCKET_NAME: my-gcs-bucket
-BUCKET_PORT: "443"
-TLS_HOST: "true"
-```
-
-**Features**:
-- Global availability
-- Multiple storage classes
-- Lifecycle management
-- Strong consistency
-
-### Azure Blob Storage
-
-**Configuration**:
-```yaml
-AZURE_STORAGE_ACCOUNT: mystorageaccount
-AZURE_STORAGE_KEY: your-storage-key
-AZURE_STORAGE_CONTAINER: backup-container
-```
-
-**Features**:
-- Hot, cool, and archive tiers
-- Geo-redundant storage
-- Large file support
-- Integration with Azure services
-
-### Other Supported Backends
-
-The operator supports any rclone-compatible backend:
-
-- **SFTP**: Secure file transfer
-- **FTP**: Traditional file transfer
-- **WebDAV**: Web-based file access
-- **OneDrive**: Microsoft cloud storage
-- **Dropbox**: Popular cloud storage
-- **Box**: Enterprise cloud storage
 
 ## Configuration Management
 
@@ -219,45 +136,6 @@ Rclone performs incremental synchronization by default:
 - **New files**: New files are uploaded
 - **Deleted files**: Files deleted from source are removed from destination
 - **Checksums**: File integrity verified through checksums
-
-### Performance Optimization
-
-The operator configures rclone for optimal performance:
-
-```bash
-# Performance settings automatically applied
---transfers 4        # Parallel file transfers
---checkers 8        # Parallel checksum operations
---retries 3         # Retry failed operations
---low-level-retries 3  # Low-level retry attempts
---stats 30s         # Progress reporting interval
-```
-
-## Monitoring Synchronization
-
-### Progress Tracking
-
-During synchronization, rclone provides progress information:
-
-```bash
-# Example rclone output
-Transferred:   	   1.234G / 2.456G, 50%, 12.34M/s, ETA 1m23s
-Checks:        	 1500 / 2000, 75%
-Transferred:   	  150 / 200, 75%
-Elapsed time:  	 1m30s
-```
-
-### Log Analysis
-
-Monitor synchronization through job logs:
-
-```bash
-# View rclone job logs
-kubectl logs job/verify-restored-data-20240806
-
-# Follow real-time progress
-kubectl logs -f job/verify-restored-data-20240806
-```
 
 ### Metrics Collection
 
