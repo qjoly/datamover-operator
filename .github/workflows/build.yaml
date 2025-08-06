@@ -67,7 +67,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Generate artifact attestation for operator
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@v2
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.OPERATOR_IMAGE_NAME }}
           subject-digest: ${{ steps.build-operator.outputs.digest }}
@@ -124,7 +124,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Generate artifact attestation for rclone
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@v2
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.RCLONE_IMAGE_NAME }}
           subject-digest: ${{ steps.build-rclone.outputs.digest }}
