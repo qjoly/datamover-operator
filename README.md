@@ -34,7 +34,65 @@ The DataMover Operator simplifies data movement and backup workflows in Kubernet
 
 ### How It Works
 
-1. **Clone Creation**: Creates a clone of the specified source PVC
+```mermaid
+flowchart TD
+    A[User creates DataMover CR] --> B{Validate Configuration}
+    B -->|Invalid| B1[Status: Failed]
+    B -->|Valid| C[Status: CreatingClonedPVC]
+    
+    C --> D[Create PVC Clone from Source]
+    D --> E{Clone Creation Success?}
+    E -->|No| E1[Status: Failed]
+    E -->|Yes| F[Status: ClonedPVCReady]
+    
+    F --> G[Status: CreatingPod]
+    G --> H[Create rclone Job Pod]
+    H --> I[Mount cloned PVC to Pod]
+    I --> J[Execute rclone sync]
+    
+    J --> K{Sync Success?}
+    K -->|No| L{Retry < 3?}
+    L -->|Yes| M[Automatic Retry with Backoff]
+    M --> J
+    L -->|No| N[Status: Failed]
+    
+    K -->|Yes| O{deletePvcAfterBackup?}
+    O -->|No| P[Status: Completed]
+    O -->|Yes| Q[Status: CleaningUp]
+    
+    Q --> R[Delete Cloned PVC]
+    R --> S{Cleanup Success?}
+    S -->|No| T[Log Warning, Keep Status]
+    S -->|Yes| P
+    
+    T --> P
+    
+    %% Parallel processes
+    J -.-> U[Update Prometheus Metrics]
+    C -.-> V[Real-time Status Updates]
+    F -.-> V
+    G -.-> V
+    Q -.-> V
+    P -.-> V
+    
+    %% Storage configuration
+    W[Storage Secret<br/>AWS/MinIO/GCS credentials] -.-> J
+    X[Optional: addTimestampPrefix] -.-> Y[Create YYYY-MM-DD-HHMMSS folder]
+    Y -.-> J
+    
+    style A fill:#e1f5fe
+    style P fill:#c8e6c9
+    style B1 fill:#ffcdd2
+    style E1 fill:#ffcdd2
+    style N fill:#ffcdd2
+    style U fill:#fff3e0
+    style V fill:#f3e5f5
+    style W fill:#e8f5e8
+```
+
+**Process Details:**
+
+1. **Clone Creation**: Creates a clone of the specified source PVC using CSI driver capabilities
 2. **Job Deployment**: Deploys an rclone job with the cloned PVC mounted and automatic retry capability (up to 3 attempts)
 3. **Data Sync**: Executes rclone synchronization to the configured remote storage with optional timestamp organization
 4. **Cleanup**: Optionally cleans up the cloned PVC after successful backup
