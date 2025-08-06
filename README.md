@@ -5,6 +5,16 @@
 
 A Kubernetes operator that automates the process of cloning PersistentVolumeClaims (PVCs) and synchronizing their data to remote storage using rclone.
 
+## Philosophy
+
+There are few projects that handle backups on Kubernetes (Velero, Volsync, k8up...), but none of them properly meet my needs:
+
+- Ability to rely on VolumeSnapshot *(like Velero)*
+- Does not use Kopia *(I have little confidence in it)*
+- Not maintained by a **crappy** company (VMWare, I'm looking at you)
+
+So I wanted to create my own operator that would tick all the boxes for my needs. Hello DataMover Operator!
+
 ## Description
 
 The DataMover Operator simplifies data movement and backup workflows in Kubernetes environments. It creates clones of existing PVCs and runs data synchronization jobs to remote storage backends (S3-compatible storage, cloud providers, etc.) using rclone.
