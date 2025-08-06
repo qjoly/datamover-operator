@@ -56,7 +56,7 @@ jobs:
 
       - name: Build and push operator image
         id: build-operator
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64
@@ -112,7 +112,7 @@ jobs:
 
       - name: Build and push rclone image
         id: build-rclone
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./dataMoverImage
           file: ./dataMoverImage/Dockerfile
