@@ -32,6 +32,15 @@ The DataMover Operator simplifies data movement and backup workflows in Kubernet
 - 📊 **Status Tracking**: Real-time status updates with phase tracking
 - 🚀 **Automated Workflow**: Complete automation from cloning to data transfer
 
+### Roadmap
+
+- [ ] Add support for more storage backends (e.g., Azure Blob Storage, Google Cloud Storage)
+- [ ] Enable Encryption at rest
+- [ ] Add periodic backup scheduling
+- [ ] Support for incremental backups (?)
+- [ ] Support for more advanced rclone features (e.g., filters, bandwidth limits)
+- [ ] Add multiple backup software support (e.g., Restic, Borg)
+
 ### How It Works
 
 ```mermaid
