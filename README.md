@@ -38,6 +38,7 @@ The DataMover Operator simplifies data movement and backup workflows in Kubernet
 - [ ] Be able to set a specific image for the backup pod
 - [ ] Enable Encryption at rest
 - [ ] Add periodic backup scheduling
+- [ ] Secrets should be optional (since customs images may require different variables)
 - [ ] Support for incremental backups (?)
 - [ ] Support for more advanced rclone features (e.g., filters, bandwidth limits)
 - [ ] Add multiple backup software support (e.g., Restic, Borg)
