@@ -216,7 +216,7 @@ spec:
   sourcePvc: "postgres-data"
   secretName: "minio-credentials"
   addTimestampPrefix: true  # Creates timestamped backup folders
-  additionalEnv:
+```
 
 ## Usage Examples
 
