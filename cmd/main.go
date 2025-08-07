@@ -270,6 +270,15 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "DataMover")
 		os.Exit(1)
 	}
+
+	if err := (&controller.DataMoverCronReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+		Log:    ctrl.Log.WithName("controllers").WithName("DataMoverCron"),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "DataMoverCron")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	if metricsCertWatcher != nil {

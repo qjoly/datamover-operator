@@ -1,0 +1,100 @@
+/*
+Copyright 2025.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package controller
+
+import (
+	"context"
+	"time"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
+
+	datamoverv1alpha1 "a-cup-of.coffee/datamover-operator/api/v1alpha1"
+)
+
+var _ = Describe("DataMoverCron Controller", func() {
+	Context("When reconciling a resource", func() {
+		const (
+			DataMoverCronName      = "test-datamovercron"
+			DataMoverCronNamespace = "default"
+			timeout                = time.Second * 10
+			duration               = time.Second * 10
+			interval               = time.Millisecond * 250
+		)
+
+		ctx := context.Background()
+
+		typeNamespacedName := types.NamespacedName{
+			Name:      DataMoverCronName,
+			Namespace: DataMoverCronNamespace,
+		}
+
+		datamovercron := &datamoverv1alpha1.DataMoverCron{}
+
+		BeforeEach(func() {
+			By("creating the custom resource for the Kind DataMoverCron")
+			err := k8sClient.Get(ctx, typeNamespacedName, datamovercron)
+			if err != nil && errors.IsNotFound(err) {
+				resource := &datamoverv1alpha1.DataMoverCron{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      DataMoverCronName,
+						Namespace: DataMoverCronNamespace,
+					},
+					Spec: datamoverv1alpha1.DataMoverCronSpec{
+						Schedule:   "*/5 * * * *", // Every 5 minutes
+						SourcePvc:  "test-pvc",
+						SecretName: "test-secret",
+					},
+				}
+				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
+			}
+		})
+
+		AfterEach(func() {
+			By("Cleanup the specific resource instance DataMoverCron")
+			resource := &datamoverv1alpha1.DataMoverCron{}
+			err := k8sClient.Get(ctx, typeNamespacedName, resource)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Cleanup the specific resource instance DataMoverCron")
+			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
+		})
+
+		It("should successfully reconcile the resource", func() {
+			By("Reconciling the created resource")
+			controllerReconciler := &DataMoverCronReconciler{
+				Client: k8sClient,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err := controllerReconciler.Reconcile(ctx, ctrl.Request{
+				NamespacedName: typeNamespacedName,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Checking if the custom resource status has been updated")
+			Eventually(func() error {
+				found := &datamoverv1alpha1.DataMoverCron{}
+				return k8sClient.Get(ctx, typeNamespacedName, found)
+			}, timeout, interval).Should(Succeed())
+		})
+	})
+})
