@@ -23,8 +23,8 @@ The DataMover Operator simplifies data movement and backup workflows in Kubernet
 
 - 🔄 **PVC Cloning**: Automatically clones source PVCs without snapshots
 - 📦 **Data Synchronization**: Uses rclone to sync data to remote storage
-- � **Retry Mechanism**: Automatic retry with up to 3 attempts for failed jobs
-- �🔐 **Secure Configuration**: Supports secrets for storage credentials
+- 🔁 **Retry Mechanism**: Automatic retry with up to 3 attempts for failed jobs
+- 🔐 **Secure Configuration**: Supports secrets for storage credentials
 - 🗂️ **Timestamp Organization**: Optional timestamped folder organization (YYYY-MM-DD-HHMMSS)
 - 🧹 **Automatic Cleanup**: Optional automatic PVC cleanup after successful backup
 - 🌍 **Environment Variables**: Configurable environment variables for rclone operations
@@ -126,6 +126,12 @@ flowchart TD
 # Install CRDs and operator
 cd dist/chart
 helm install datamover-operator . --namespace datamover-operator-system --create-namespace
+```
+
+Or with the OCI registry:
+
+```sh
+helm install datamover-operator oci://ghcr.io/qjoly/datamover-operator-chart --version 0.0.1 -n datamover-operator-system
 ```
 
 #### Method 2: Development Install
