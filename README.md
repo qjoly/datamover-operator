@@ -35,6 +35,7 @@ The DataMover Operator simplifies data movement and backup workflows in Kubernet
 ### Roadmap
 
 - [ ] Add support for more storage backends (e.g., Azure Blob Storage, Google Cloud Storage)
+- [ ] Be able to set a specific image for the backup pod
 - [ ] Enable Encryption at rest
 - [ ] Add periodic backup scheduling
 - [ ] Support for incremental backups (?)
