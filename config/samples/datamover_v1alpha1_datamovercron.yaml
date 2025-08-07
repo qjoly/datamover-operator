@@ -1,0 +1,36 @@
+apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMoverCron
+metadata:
+  labels:
+    app.kubernetes.io/name: datamover-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: datamovercron-sample
+spec:
+  # Run every day at 2:30 AM
+  schedule: "30 2 * * *"
+  
+  # Source PVC to backup
+  sourcePvc: "web-app-data"
+  
+  # Secret containing storage credentials
+  secretName: "s3-credentials"
+  
+  # Add timestamp prefix for organized backups
+  addTimestampPrefix: true
+  
+  # Clean up cloned PVC after backup
+  deletePvcAfterBackup: true
+  
+  # Keep history of jobs
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  
+  # Don't suspend scheduling
+  suspend: false
+  
+  # Additional environment variables
+  additionalEnv:
+    - name: "ENVIRONMENT"
+      value: "production"
+    - name: "BACKUP_TYPE"
+      value: "scheduled"
