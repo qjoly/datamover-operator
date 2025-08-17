@@ -1,0 +1,24 @@
+apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  labels:
+    app.kubernetes.io/name: datamover-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: datamover-custom-image-sample
+spec:
+  sourcePvc: "database-storage"
+  secretName: "backup-credentials"
+  addTimestampPrefix: true
+  deletePvcAfterBackup: true
+  
+  # Custom container image configuration
+  image:
+    repository: "my-registry.com/my-custom-rclone"
+    tag: "v1.2.3"
+    pullPolicy: "IfNotPresent"
+  
+  additionalEnv:
+    - name: "CUSTOM_CONFIG"
+      value: "enabled"
+    - name: "BACKUP_TYPE"
+      value: "custom"

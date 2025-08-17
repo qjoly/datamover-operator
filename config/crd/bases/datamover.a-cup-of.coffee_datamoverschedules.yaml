@@ -4,28 +4,36 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.18.0
-  name: datamovers.datamover.a-cup-of.coffee
+  name: datamoverschedules.datamover.a-cup-of.coffee
 spec:
   group: datamover.a-cup-of.coffee
   names:
-    kind: DataMover
-    listKind: DataMoverList
-    plural: datamovers
-    singular: datamover
+    kind: DataMoverSchedule
+    listKind: DataMoverScheduleList
+    plural: datamoverschedules
+    singular: datamoverschedule
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - description: Phase of the DataMover operation
-      jsonPath: .status.phase
-      name: PHASE
+    - jsonPath: .spec.schedule
+      name: Schedule
       type: string
+    - jsonPath: .spec.suspend
+      name: Suspend
+      type: boolean
+    - jsonPath: .status.activeJobs
+      name: Active
+      type: integer
+    - jsonPath: .status.lastScheduleTime
+      name: Last Schedule
+      type: date
     - jsonPath: .metadata.creationTimestamp
-      name: AGE
+      name: Age
       type: date
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: DataMover is the Schema for the datamovers API
+        description: DataMoverSchedule is the Schema for the datamoverschedules API
         properties:
           apiVersion:
             description: |-
@@ -45,18 +53,16 @@ spec:
           metadata:
             type: object
           spec:
-            description: DataMoverSpec defines the desired state of DataMover
+            description: DataMoverScheduleSpec defines the desired state of DataMoverSchedule
             properties:
               addTimestampPrefix:
                 default: false
-                description: |-
-                  Whether to add a timestamp prefix to the destination folder in the bucket.
-                  When true, data will be synced to a folder with format: YYYY-MM-DD-HHMMSS/
-                  When false, data will be synced directly to the bucket root or configured path.
+                description: AddTimestampPrefix when true, creates timestamped folders
+                  (YYYY-MM-DD-HHMMSS/) for organized backups
                 type: boolean
               additionalEnv:
-                description: Additional environment variables to add to the verification
-                  pod.
+                description: AdditionalEnv allows specifying additional environment
+                  variables for the rclone job
                 items:
                   description: EnvVar represents an environment variable present in
                     a Container.
@@ -175,11 +181,17 @@ spec:
                 type: array
               deletePvcAfterBackup:
                 default: false
-                description: |-
-                  Whether to delete the cloned PVC after successful backup completion.
-                  When true, the cloned PVC will be automatically deleted after successful data sync.
-                  When false, the cloned PVC will be preserved for manual cleanup or further use.
+                description: DeletePvcAfterBackup when true, automatically deletes
+                  the cloned PVC after successful backup
                 type: boolean
+              failedJobsHistoryLimit:
+                default: 1
+                description: |-
+                  FailedJobsHistoryLimit is the number of failed finished jobs to retain.
+                  Value must be non-negative integer. Defaults to 1.
+                format: int32
+                minimum: 0
+                type: integer
               image:
                 description: Container image configuration for the rclone job
                 properties:
@@ -200,26 +212,111 @@ spec:
                     description: Tag of the container image
                     type: string
                 type: object
+              schedule:
+                description: Schedule defines the cron schedule for creating DataMover
+                  jobs
+                pattern: ^(\*|([0-9]|1[0-9]|2[0-9]|3[0-9]|4[0-9]|5[0-9])|\*\/([0-9]|1[0-9]|2[0-9]|3[0-9]|4[0-9]|5[0-9]))
+                  (\*|([0-9]|1[0-9]|2[0-3])|\*\/([0-9]|1[0-9]|2[0-3])) (\*|([1-9]|1[0-9]|2[0-9]|3[0-1])|\*\/([1-9]|1[0-9]|2[0-9]|3[0-1]))
+                  (\*|([1-9]|1[0-2])|\*\/([1-9]|1[0-2])) (\*|([0-6])|\*\/([0-6]))$
+                type: string
               secretName:
-                description: The name of the secret to mount in the verification pod.
+                description: SecretName is the name of the secret containing storage
+                  credentials
                 type: string
               sourcePvc:
-                description: The name of the source PersistentVolumeClaim (PVC) to
-                  clone.
+                description: SourcePvc is the name of the source PVC to clone
                 type: string
+              successfulJobsHistoryLimit:
+                default: 3
+                description: |-
+                  SuccessfulJobsHistoryLimit is the number of successful finished jobs to retain.
+                  Value must be non-negative integer. Defaults to 3.
+                format: int32
+                minimum: 0
+                type: integer
+              suspend:
+                default: false
+                description: |-
+                  Suspend tells the controller to suspend subsequent executions, it does
+                  not apply to already started executions. Defaults to false.
+                type: boolean
             required:
+            - schedule
             - secretName
             - sourcePvc
             type: object
           status:
-            description: DataMoverStatus defines the observed state of DataMover
+            description: DataMoverScheduleStatus defines the observed state of DataMoverSchedule
             properties:
-              phase:
-                description: Indicates the state of the cloning and verification process.
+              active:
+                description: A list of pointers to currently running jobs.
+                items:
+                  description: ObjectReference contains enough information to let
+                    you inspect or modify the referred object.
+                  properties:
+                    apiVersion:
+                      description: API version of the referent.
+                      type: string
+                    fieldPath:
+                      description: |-
+                        If referring to a piece of an object instead of an entire object, this string
+                        should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                        For example, if the object reference is to a container within a pod, this would take on a value like:
+                        "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                        the event) or if no container name is specified "spec.containers[2]" (container with
+                        index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                        referencing a part of an object.
+                      type: string
+                    kind:
+                      description: |-
+                        Kind of the referent.
+                        More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                      type: string
+                    name:
+                      description: |-
+                        Name of the referent.
+                        More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      type: string
+                    namespace:
+                      description: |-
+                        Namespace of the referent.
+                        More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                      type: string
+                    resourceVersion:
+                      description: |-
+                        Specific resourceVersion to which this reference is made, if any.
+                        More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                      type: string
+                    uid:
+                      description: |-
+                        UID of the referent.
+                        More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                      type: string
+                  type: object
+                  x-kubernetes-map-type: atomic
+                type: array
+              activeJobs:
+                description: The number of currently running jobs.
+                format: int32
+                type: integer
+              failedJobs:
+                description: The number of failed jobs.
+                format: int32
+                type: integer
+              lastScheduleTime:
+                description: Information when was the last time the job was successfully
+                  scheduled.
+                format: date-time
                 type: string
-              restoredPvcName:
-                description: A reference to the cloned PVC.
+              lastSuccessfulTime:
+                description: Information when was the last time the job successfully
+                  completed.
+                format: date-time
                 type: string
+              successfulJobs:
+                description: The number of successful jobs.
+                format: int32
+                type: integer
             type: object
         type: object
     served: true

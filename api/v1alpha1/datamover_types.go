@@ -5,6 +5,25 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// ImageSpec defines the container image configuration
+type ImageSpec struct {
+	// Repository of the container image
+	// +kubebuilder:default:="ghcr.io/qjoly/datamover-rclone"
+	// +optional
+	Repository string `json:"repository,omitempty"`
+
+	// Tag of the container image
+	// +kubebuilder:default:="latest"
+	// +optional
+	Tag string `json:"tag,omitempty"`
+
+	// Pull policy for the container image
+	// +kubebuilder:default:="Always"
+	// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
+	// +optional
+	PullPolicy corev1.PullPolicy `json:"pullPolicy,omitempty"`
+}
+
 // DataMoverSpec defines the desired state of DataMover
 type DataMoverSpec struct {
 	// The name of the source PersistentVolumeClaim (PVC) to clone.
@@ -32,6 +51,10 @@ type DataMoverSpec struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:=false
 	DeletePvcAfterBackup bool `json:"deletePvcAfterBackup,omitempty"`
+
+	// Container image configuration for the rclone job
+	// +optional
+	Image ImageSpec `json:"image,omitempty"`
 }
 
 // DataMoverStatus defines the observed state of DataMover

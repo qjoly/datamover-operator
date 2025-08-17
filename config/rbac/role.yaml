@@ -5,41 +5,10 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - ""
-  resources:
-  - events
-  verbs:
-  - create
-  - patch
-- apiGroups:
-  - ""
-  resources:
-  - persistentvolumeclaims
-  - pods
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - batch
-  resources:
-  - jobs
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
   - datamover.a-cup-of.coffee
   resources:
   - datamovers
+  - datamoverschedules
   verbs:
   - create
   - delete
@@ -51,13 +20,13 @@ rules:
 - apiGroups:
   - datamover.a-cup-of.coffee
   resources:
-  - datamovers/finalizers
+  - datamoverschedules/finalizers
   verbs:
   - update
 - apiGroups:
   - datamover.a-cup-of.coffee
   resources:
-  - datamovers/status
+  - datamoverschedules/status
   verbs:
   - get
   - patch

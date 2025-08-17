@@ -261,6 +261,24 @@ func (r *DataMoverReconciler) createVerificationJob(
 		envVars = append(envVars, dm.Spec.AdditionalEnv...)
 	}
 
+	// Get image configuration with defaults
+	imageName := dm.Spec.Image.Repository
+	if imageName == "" {
+		imageName = "ghcr.io/qjoly/datamover-rclone"
+	}
+
+	imageTag := dm.Spec.Image.Tag
+	if imageTag == "" {
+		imageTag = "latest"
+	}
+
+	pullPolicy := dm.Spec.Image.PullPolicy
+	if pullPolicy == "" {
+		pullPolicy = corev1.PullAlways
+	}
+
+	fullImageName := fmt.Sprintf("%s:%s", imageName, imageTag)
+
 	// Set backoffLimit to 2 for 3 total attempts (initial + 2 retries)
 	backoffLimit := int32(2)
 
@@ -284,8 +302,8 @@ func (r *DataMoverReconciler) createVerificationJob(
 					},
 					Containers: []corev1.Container{{
 						Name:            "rclone",
-						Image:           "ghcr.io/qjoly/datamover-rclone:latest",
-						ImagePullPolicy: corev1.PullAlways,
+						Image:           fullImageName,
+						ImagePullPolicy: pullPolicy,
 						SecurityContext: &corev1.SecurityContext{
 							AllowPrivilegeEscalation: &[]bool{false}[0],
 							RunAsNonRoot:             &[]bool{true}[0],
@@ -314,6 +332,10 @@ func (r *DataMoverReconciler) createVerificationJob(
 								Name:      "restored-data",
 								MountPath: "/data/",
 							},
+							{
+								Name:      "config-dir",
+								MountPath: "/config",
+							},
 						},
 					}},
 					Volumes: []corev1.Volume{
@@ -323,6 +345,12 @@ func (r *DataMoverReconciler) createVerificationJob(
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 									ClaimName: dm.Status.RestoredPVCName,
 								},
+							},
+						},
+						{
+							Name: "config-dir",
+							VolumeSource: corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
 							},
 						},
 					},

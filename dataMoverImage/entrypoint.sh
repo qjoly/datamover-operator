@@ -4,8 +4,10 @@ echo "🚀 Starting rclone configuration..."
 rclone_version=$(rclone --version | head -n 1 | awk '{print $2}')
 echo "📦 Rclone version: $rclone_version"
 
-# Configure rclone s3 genric
+# Set HOME to /config for rclone configuration (otherwise, it can try to write in /.rclone, which is not desirable)
+export HOME="/config/"
 
+# Configure rclone s3 generic
 if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
   echo "❌ AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must be set."
   exit 1

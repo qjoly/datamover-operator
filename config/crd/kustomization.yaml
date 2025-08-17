@@ -3,6 +3,7 @@
 # It should be run by config/default
 resources:
 - bases/datamover.a-cup-of.coffee_datamovers.yaml
+- bases/datamover.a-cup-of.coffee_datamoverschedules.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:
