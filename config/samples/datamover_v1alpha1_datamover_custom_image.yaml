@@ -13,7 +13,7 @@ spec:
   
   # Custom container image configuration
   image:
-    name: "my-registry.com/my-custom-rclone"
+    repository: "my-registry.com/my-custom-rclone"
     tag: "v1.2.3"
     pullPolicy: "IfNotPresent"
   

@@ -7,10 +7,10 @@ import (
 
 // ImageSpec defines the container image configuration
 type ImageSpec struct {
-	// Name of the container image
+	// Repository of the container image
 	// +kubebuilder:default:="ghcr.io/qjoly/datamover-rclone"
 	// +optional
-	Name string `json:"name,omitempty"`
+	Repository string `json:"repository,omitempty"`
 
 	// Tag of the container image
 	// +kubebuilder:default:="latest"

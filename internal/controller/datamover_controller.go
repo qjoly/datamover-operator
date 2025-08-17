@@ -262,7 +262,7 @@ func (r *DataMoverReconciler) createVerificationJob(
 	}
 
 	// Get image configuration with defaults
-	imageName := dm.Spec.Image.Name
+	imageName := dm.Spec.Image.Repository
 	if imageName == "" {
 		imageName = "ghcr.io/qjoly/datamover-rclone"
 	}

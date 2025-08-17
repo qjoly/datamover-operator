@@ -183,10 +183,6 @@ spec:
               image:
                 description: Container image configuration for the rclone job
                 properties:
-                  name:
-                    default: ghcr.io/qjoly/datamover-rclone
-                    description: Name of the container image
-                    type: string
                   pullPolicy:
                     default: Always
                     description: Pull policy for the container image
@@ -194,6 +190,10 @@ spec:
                     - Always
                     - Never
                     - IfNotPresent
+                    type: string
+                  repository:
+                    default: ghcr.io/qjoly/datamover-rclone
+                    description: Repository of the container image
                     type: string
                   tag:
                     default: latest
