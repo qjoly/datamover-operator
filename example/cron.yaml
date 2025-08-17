@@ -1,5 +1,5 @@
 apiVersion: datamover.a-cup-of.coffee/v1alpha1
-kind: DataMoverCron
+kind: DataMoverSchedule
 metadata:
   labels:
     app.kubernetes.io/name: datamover-operator

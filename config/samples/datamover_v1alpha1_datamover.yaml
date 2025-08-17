@@ -6,12 +6,14 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: datamover-sample
 spec:
-  sourcePvc: "my-pvc"
-  secretName: "my-secret"
+  sourcePvc: "web-app-data"
+  secretName: "s3-credentials"
   addTimestampPrefix: true
-  deletePvcAfterBackup: true  # Automatically cleanup cloned PVC after backup
+  deletePvcAfterBackup: false
+  image:
+    name: "ghcr.io/qjoly/datamover-rclone"
+    tag: "latest"
+    pullPolicy: "Always"
   additionalEnv:
-    - name: "CUSTOM_VAR"
-      value: "custom-value"
     - name: "ENVIRONMENT"
       value: "production"
