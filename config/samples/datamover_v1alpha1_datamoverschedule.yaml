@@ -30,7 +30,7 @@ spec:
   
   # Container image configuration
   image:
-    name: "ghcr.io/qjoly/datamover-rclone"
+    repository: "ghcr.io/qjoly/datamover-rclone"
     tag: "latest"
     pullPolicy: "Always"
   

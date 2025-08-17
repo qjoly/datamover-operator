@@ -13,6 +13,9 @@ spec:
   addTimestampPrefix: true
   deletePvcAfterBackup: true
   suspend: false
+  image:
+    repository: ttl.sh/rclone_op
+    tag: latest
   additionalEnv:
     - name: "TLS_HOST"
       value: "false"

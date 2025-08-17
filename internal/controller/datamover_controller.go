@@ -332,6 +332,10 @@ func (r *DataMoverReconciler) createVerificationJob(
 								Name:      "restored-data",
 								MountPath: "/data/",
 							},
+							{
+								Name:      "config-dir",
+								MountPath: "/config",
+							},
 						},
 					}},
 					Volumes: []corev1.Volume{
@@ -341,6 +345,12 @@ func (r *DataMoverReconciler) createVerificationJob(
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 									ClaimName: dm.Status.RestoredPVCName,
 								},
+							},
+						},
+						{
+							Name: "config-dir",
+							VolumeSource: corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
 							},
 						},
 					},
