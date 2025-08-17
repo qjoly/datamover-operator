@@ -36,50 +36,50 @@ import (
 	datamoverv1alpha1 "a-cup-of.coffee/datamover-operator/api/v1alpha1"
 )
 
-// DataMoverCronReconciler reconciles a DataMoverCron object
-type DataMoverCronReconciler struct {
+// DataMoverScheduleReconciler reconciles a DataMoverSchedule object
+type DataMoverScheduleReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
 	Log      logr.Logger
 	Recorder record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=datamover.a-cup-of.coffee,resources=datamovercrons,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=datamover.a-cup-of.coffee,resources=datamovercrons/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=datamover.a-cup-of.coffee,resources=datamovercrons/finalizers,verbs=update
+// +kubebuilder:rbac:groups=datamover.a-cup-of.coffee,resources=datamoverschedules,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=datamover.a-cup-of.coffee,resources=datamoverschedules/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=datamover.a-cup-of.coffee,resources=datamoverschedules/finalizers,verbs=update
 // +kubebuilder:rbac:groups=datamover.a-cup-of.coffee,resources=datamovers,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *DataMoverCronReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *DataMoverScheduleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	// Fetch the DataMoverCron instance
-	var dataMoverCron datamoverv1alpha1.DataMoverCron
-	if err := r.Get(ctx, req.NamespacedName, &dataMoverCron); err != nil {
-		logger.Error(err, "unable to fetch DataMoverCron")
+	// Fetch the DataMoverSchedule instance
+	var dataMoverSchedule datamoverv1alpha1.DataMoverSchedule
+	if err := r.Get(ctx, req.NamespacedName, &dataMoverSchedule); err != nil {
+		logger.Error(err, "unable to fetch DataMoverSchedule")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// Don't schedule anything if suspended
-	if dataMoverCron.Spec.Suspend {
-		logger.V(1).Info("DataMoverCron is suspended, skipping")
+	if dataMoverSchedule.Spec.Suspend {
+		logger.V(1).Info("DataMoverSchedule is suspended, skipping")
 		return ctrl.Result{}, nil
 	}
 
 	// Parse the cron schedule
-	cronSchedule, err := cron.ParseStandard(dataMoverCron.Spec.Schedule)
+	cronSchedule, err := cron.ParseStandard(dataMoverSchedule.Spec.Schedule)
 	if err != nil {
-		logger.Error(err, "unable to parse cron schedule", "schedule", dataMoverCron.Spec.Schedule)
-		r.Recorder.Eventf(&dataMoverCron, corev1.EventTypeWarning, "InvalidSchedule",
-			"Invalid cron schedule: %s", dataMoverCron.Spec.Schedule)
+		logger.Error(err, "unable to parse cron schedule", "schedule", dataMoverSchedule.Spec.Schedule)
+		r.Recorder.Eventf(&dataMoverSchedule, corev1.EventTypeWarning, "InvalidSchedule",
+			"Invalid cron schedule: %s", dataMoverSchedule.Spec.Schedule)
 		return ctrl.Result{}, err
 	}
 
-	// Get all DataMover jobs created by this DataMoverCron
+	// Get all DataMover jobs created by this DataMoverSchedule
 	var childDataMovers datamoverv1alpha1.DataMoverList
 	if err := r.List(ctx, &childDataMovers, client.InNamespace(req.Namespace),
-		client.MatchingLabels{"datamovercron": req.Name}); err != nil {
+		client.MatchingLabels{"datamoverschedule": req.Name}); err != nil {
 		logger.Error(err, "unable to list child DataMovers")
 		return ctrl.Result{}, err
 	}
@@ -111,13 +111,13 @@ func (r *DataMoverCronReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Clean up old jobs based on history limits
 	successfulJobsHistoryLimit := int32(3)
-	if dataMoverCron.Spec.SuccessfulJobsHistoryLimit != nil {
-		successfulJobsHistoryLimit = *dataMoverCron.Spec.SuccessfulJobsHistoryLimit
+	if dataMoverSchedule.Spec.SuccessfulJobsHistoryLimit != nil {
+		successfulJobsHistoryLimit = *dataMoverSchedule.Spec.SuccessfulJobsHistoryLimit
 	}
 
 	failedJobsHistoryLimit := int32(1)
-	if dataMoverCron.Spec.FailedJobsHistoryLimit != nil {
-		failedJobsHistoryLimit = *dataMoverCron.Spec.FailedJobsHistoryLimit
+	if dataMoverSchedule.Spec.FailedJobsHistoryLimit != nil {
+		failedJobsHistoryLimit = *dataMoverSchedule.Spec.FailedJobsHistoryLimit
 	}
 
 	// Delete old successful jobs
@@ -148,8 +148,8 @@ func (r *DataMoverCronReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Check if we should create a new job
 	var lastScheduleTime *metav1.Time
-	if dataMoverCron.Status.LastScheduleTime != nil {
-		lastScheduleTime = dataMoverCron.Status.LastScheduleTime
+	if dataMoverSchedule.Status.LastScheduleTime != nil {
+		lastScheduleTime = dataMoverSchedule.Status.LastScheduleTime
 	}
 
 	scheduledTime := cronSchedule.Next(now.Add(-time.Second))
@@ -160,55 +160,56 @@ func (r *DataMoverCronReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Check if we already created a job for this schedule
-	if lastScheduleTime != nil && scheduledTime.Before(lastScheduleTime.Time.Add(time.Minute)) {
+	if lastScheduleTime != nil && scheduledTime.Before(lastScheduleTime.Add(time.Minute)) {
 		// We already created a job for this minute
 		logger.V(1).Info("job already created for this schedule", "scheduledTime", scheduledTime)
 		return ctrl.Result{RequeueAfter: nextTime.Sub(now)}, nil
 	}
 
 	// Create new DataMover job
-	dataMoverName := fmt.Sprintf("%s-%d", dataMoverCron.Name, scheduledTime.Unix())
+	dataMoverName := fmt.Sprintf("%s-%d", dataMoverSchedule.Name, scheduledTime.Unix())
 	dataMover := &datamoverv1alpha1.DataMover{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dataMoverName,
-			Namespace: dataMoverCron.Namespace,
+			Namespace: dataMoverSchedule.Namespace,
 			Labels: map[string]string{
-				"datamovercron":          dataMoverCron.Name,
-				"datamovercron-schedule": fmt.Sprintf("%d", scheduledTime.Unix()),
+				"datamoverschedule":          dataMoverSchedule.Name,
+				"datamoverschedule-schedule": fmt.Sprintf("%d", scheduledTime.Unix()),
 			},
 		},
 		Spec: datamoverv1alpha1.DataMoverSpec{
-			SourcePVC:            dataMoverCron.Spec.SourcePvc,
-			SecretName:           dataMoverCron.Spec.SecretName,
-			AddTimestampPrefix:   dataMoverCron.Spec.AddTimestampPrefix,
-			DeletePvcAfterBackup: dataMoverCron.Spec.DeletePvcAfterBackup,
-			AdditionalEnv:        dataMoverCron.Spec.AdditionalEnv,
+			SourcePVC:            dataMoverSchedule.Spec.SourcePvc,
+			SecretName:           dataMoverSchedule.Spec.SecretName,
+			AddTimestampPrefix:   dataMoverSchedule.Spec.AddTimestampPrefix,
+			DeletePvcAfterBackup: dataMoverSchedule.Spec.DeletePvcAfterBackup,
+			AdditionalEnv:        dataMoverSchedule.Spec.AdditionalEnv,
+			Image:                dataMoverSchedule.Spec.Image,
 		},
 	}
 
-	// Set DataMoverCron as owner of the DataMover
-	if err := controllerutil.SetControllerReference(&dataMoverCron, dataMover, r.Scheme); err != nil {
+	// Set DataMoverSchedule as owner of the DataMover
+	if err := controllerutil.SetControllerReference(&dataMoverSchedule, dataMover, r.Scheme); err != nil {
 		logger.Error(err, "unable to set controller reference")
 		return ctrl.Result{}, err
 	}
 
 	if err := r.Create(ctx, dataMover); err != nil {
 		logger.Error(err, "unable to create DataMover job", "datamover", dataMoverName)
-		r.Recorder.Eventf(&dataMoverCron, corev1.EventTypeWarning, "JobCreationFailed",
+		r.Recorder.Eventf(&dataMoverSchedule, corev1.EventTypeWarning, "JobCreationFailed",
 			"Failed to create DataMover job: %s", dataMoverName)
 		return ctrl.Result{}, err
 	}
 
 	logger.Info("created DataMover job", "datamover", dataMoverName, "scheduledTime", scheduledTime)
-	r.Recorder.Eventf(&dataMoverCron, corev1.EventTypeNormal, "JobCreated",
+	r.Recorder.Eventf(&dataMoverSchedule, corev1.EventTypeNormal, "JobCreated",
 		"Created DataMover job: %s", dataMoverName)
 
 	// Update status
 	now = time.Now()
-	dataMoverCron.Status.LastScheduleTime = &metav1.Time{Time: scheduledTime}
+	dataMoverSchedule.Status.LastScheduleTime = &metav1.Time{Time: scheduledTime}
 
 	// Update active jobs list
-	var activeRefs []corev1.ObjectReference
+	activeRefs := make([]corev1.ObjectReference, 0, len(activeJobs)+1)
 	for _, job := range activeJobs {
 		activeRefs = append(activeRefs, corev1.ObjectReference{
 			Kind:      "DataMover",
@@ -225,13 +226,13 @@ func (r *DataMoverCronReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		UID:       dataMover.UID,
 	})
 
-	dataMoverCron.Status.Active = activeRefs
-	dataMoverCron.Status.ActiveJobs = int32(len(activeRefs))
-	dataMoverCron.Status.SuccessfulJobs = int32(len(successfulJobs))
-	dataMoverCron.Status.FailedJobs = int32(len(failedJobs))
+	dataMoverSchedule.Status.Active = activeRefs
+	dataMoverSchedule.Status.ActiveJobs = int32(len(activeRefs))
+	dataMoverSchedule.Status.SuccessfulJobs = int32(len(successfulJobs))
+	dataMoverSchedule.Status.FailedJobs = int32(len(failedJobs))
 
-	if err := r.Status().Update(ctx, &dataMoverCron); err != nil {
-		logger.Error(err, "unable to update DataMoverCron status")
+	if err := r.Status().Update(ctx, &dataMoverSchedule); err != nil {
+		logger.Error(err, "unable to update DataMoverSchedule status")
 		return ctrl.Result{}, err
 	}
 
@@ -240,13 +241,13 @@ func (r *DataMoverCronReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *DataMoverCronReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *DataMoverScheduleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if r.Recorder == nil {
-		r.Recorder = mgr.GetEventRecorderFor("datamovercron-controller")
+		r.Recorder = mgr.GetEventRecorderFor("datamoverschedule-controller")
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&datamoverv1alpha1.DataMoverCron{}).
+		For(&datamoverv1alpha1.DataMoverSchedule{}).
 		Owns(&datamoverv1alpha1.DataMover{}).
 		Complete(r)
 }

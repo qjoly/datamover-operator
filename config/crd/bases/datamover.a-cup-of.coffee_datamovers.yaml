@@ -180,6 +180,26 @@ spec:
                   When true, the cloned PVC will be automatically deleted after successful data sync.
                   When false, the cloned PVC will be preserved for manual cleanup or further use.
                 type: boolean
+              image:
+                description: Container image configuration for the rclone job
+                properties:
+                  name:
+                    default: ghcr.io/qjoly/datamover-rclone
+                    description: Name of the container image
+                    type: string
+                  pullPolicy:
+                    default: Always
+                    description: Pull policy for the container image
+                    enum:
+                    - Always
+                    - Never
+                    - IfNotPresent
+                    type: string
+                  tag:
+                    default: latest
+                    description: Tag of the container image
+                    type: string
+                type: object
               secretName:
                 description: The name of the secret to mount in the verification pod.
                 type: string

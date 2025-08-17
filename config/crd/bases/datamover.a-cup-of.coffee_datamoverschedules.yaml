@@ -4,14 +4,14 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.18.0
-  name: datamovercrons.datamover.a-cup-of.coffee
+  name: datamoverschedules.datamover.a-cup-of.coffee
 spec:
   group: datamover.a-cup-of.coffee
   names:
-    kind: DataMoverCron
-    listKind: DataMoverCronList
-    plural: datamovercrons
-    singular: datamovercron
+    kind: DataMoverSchedule
+    listKind: DataMoverScheduleList
+    plural: datamoverschedules
+    singular: datamoverschedule
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
@@ -33,7 +33,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: DataMoverCron is the Schema for the datamovercrons API
+        description: DataMoverSchedule is the Schema for the datamoverschedules API
         properties:
           apiVersion:
             description: |-
@@ -53,7 +53,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: DataMoverCronSpec defines the desired state of DataMoverCron
+            description: DataMoverScheduleSpec defines the desired state of DataMoverSchedule
             properties:
               addTimestampPrefix:
                 default: false
@@ -192,6 +192,26 @@ spec:
                 format: int32
                 minimum: 0
                 type: integer
+              image:
+                description: Container image configuration for the rclone job
+                properties:
+                  name:
+                    default: ghcr.io/qjoly/datamover-rclone
+                    description: Name of the container image
+                    type: string
+                  pullPolicy:
+                    default: Always
+                    description: Pull policy for the container image
+                    enum:
+                    - Always
+                    - Never
+                    - IfNotPresent
+                    type: string
+                  tag:
+                    default: latest
+                    description: Tag of the container image
+                    type: string
+                type: object
               schedule:
                 description: Schedule defines the cron schedule for creating DataMover
                   jobs
@@ -226,7 +246,7 @@ spec:
             - sourcePvc
             type: object
           status:
-            description: DataMoverCronStatus defines the observed state of DataMoverCron
+            description: DataMoverScheduleStatus defines the observed state of DataMoverSchedule
             properties:
               active:
                 description: A list of pointers to currently running jobs.

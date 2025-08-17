@@ -21,8 +21,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// DataMoverCronSpec defines the desired state of DataMoverCron
-type DataMoverCronSpec struct {
+// DataMoverScheduleSpec defines the desired state of DataMoverSchedule
+type DataMoverScheduleSpec struct {
 	// Schedule defines the cron schedule for creating DataMover jobs
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Pattern=`^(\*|([0-9]|1[0-9]|2[0-9]|3[0-9]|4[0-9]|5[0-9])|\*\/([0-9]|1[0-9]|2[0-9]|3[0-9]|4[0-9]|5[0-9])) (\*|([0-9]|1[0-9]|2[0-3])|\*\/([0-9]|1[0-9]|2[0-3])) (\*|([1-9]|1[0-9]|2[0-9]|3[0-1])|\*\/([1-9]|1[0-9]|2[0-9]|3[0-1])) (\*|([1-9]|1[0-2])|\*\/([1-9]|1[0-2])) (\*|([0-6])|\*\/([0-6]))$`
@@ -69,10 +69,14 @@ type DataMoverCronSpec struct {
 	// +kubebuilder:validation:Minimum=0
 	// +optional
 	FailedJobsHistoryLimit *int32 `json:"failedJobsHistoryLimit,omitempty"`
+
+	// Container image configuration for the rclone job
+	// +optional
+	Image ImageSpec `json:"image,omitempty"`
 }
 
-// DataMoverCronStatus defines the observed state of DataMoverCron
-type DataMoverCronStatus struct {
+// DataMoverScheduleStatus defines the observed state of DataMoverSchedule
+type DataMoverScheduleStatus struct {
 	// Information when was the last time the job was successfully scheduled.
 	// +optional
 	LastScheduleTime *metav1.Time `json:"lastScheduleTime,omitempty"`
@@ -106,24 +110,24 @@ type DataMoverCronStatus struct {
 // +kubebuilder:printcolumn:name="Last Schedule",type="date",JSONPath=".status.lastScheduleTime"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
-// DataMoverCron is the Schema for the datamovercrons API
-type DataMoverCron struct {
+// DataMoverSchedule is the Schema for the datamoverschedules API
+type DataMoverSchedule struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   DataMoverCronSpec   `json:"spec,omitempty"`
-	Status DataMoverCronStatus `json:"status,omitempty"`
+	Spec   DataMoverScheduleSpec   `json:"spec,omitempty"`
+	Status DataMoverScheduleStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// DataMoverCronList contains a list of DataMoverCron
-type DataMoverCronList struct {
+// DataMoverScheduleList contains a list of DataMoverSchedule
+type DataMoverScheduleList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []DataMoverCron `json:"items"`
+	Items           []DataMoverSchedule `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&DataMoverCron{}, &DataMoverCronList{})
+	SchemeBuilder.Register(&DataMoverSchedule{}, &DataMoverScheduleList{})
 }

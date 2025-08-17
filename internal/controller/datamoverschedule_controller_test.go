@@ -30,35 +30,35 @@ import (
 	datamoverv1alpha1 "a-cup-of.coffee/datamover-operator/api/v1alpha1"
 )
 
-var _ = Describe("DataMoverCron Controller", func() {
+var _ = Describe("DataMoverSchedule Controller", func() {
 	Context("When reconciling a resource", func() {
 		const (
-			DataMoverCronName      = "test-datamovercron"
-			DataMoverCronNamespace = "default"
-			timeout                = time.Second * 10
-			duration               = time.Second * 10
-			interval               = time.Millisecond * 250
+			DataMoverScheduleName      = "test-datamoverschedule"
+			DataMoverScheduleNamespace = "default"
+			timeout                    = time.Second * 10
+			duration                   = time.Second * 10
+			interval                   = time.Millisecond * 250
 		)
 
 		ctx := context.Background()
 
 		typeNamespacedName := types.NamespacedName{
-			Name:      DataMoverCronName,
-			Namespace: DataMoverCronNamespace,
+			Name:      DataMoverScheduleName,
+			Namespace: DataMoverScheduleNamespace,
 		}
 
-		datamovercron := &datamoverv1alpha1.DataMoverCron{}
+		datamoverschedule := &datamoverv1alpha1.DataMoverSchedule{}
 
 		BeforeEach(func() {
-			By("creating the custom resource for the Kind DataMoverCron")
-			err := k8sClient.Get(ctx, typeNamespacedName, datamovercron)
+			By("creating the custom resource for the Kind DataMoverSchedule")
+			err := k8sClient.Get(ctx, typeNamespacedName, datamoverschedule)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &datamoverv1alpha1.DataMoverCron{
+				resource := &datamoverv1alpha1.DataMoverSchedule{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      DataMoverCronName,
-						Namespace: DataMoverCronNamespace,
+						Name:      DataMoverScheduleName,
+						Namespace: DataMoverScheduleNamespace,
 					},
-					Spec: datamoverv1alpha1.DataMoverCronSpec{
+					Spec: datamoverv1alpha1.DataMoverScheduleSpec{
 						Schedule:   "*/5 * * * *", // Every 5 minutes
 						SourcePvc:  "test-pvc",
 						SecretName: "test-secret",
@@ -69,18 +69,18 @@ var _ = Describe("DataMoverCron Controller", func() {
 		})
 
 		AfterEach(func() {
-			By("Cleanup the specific resource instance DataMoverCron")
-			resource := &datamoverv1alpha1.DataMoverCron{}
+			By("Cleanup the specific resource instance DataMoverSchedule")
+			resource := &datamoverv1alpha1.DataMoverSchedule{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Cleanup the specific resource instance DataMoverCron")
+			By("Cleanup the specific resource instance DataMoverSchedule")
 			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
 		})
 
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
-			controllerReconciler := &DataMoverCronReconciler{
+			controllerReconciler := &DataMoverScheduleReconciler{
 				Client: k8sClient,
 				Scheme: k8sClient.Scheme(),
 			}
@@ -92,7 +92,7 @@ var _ = Describe("DataMoverCron Controller", func() {
 
 			By("Checking if the custom resource status has been updated")
 			Eventually(func() error {
-				found := &datamoverv1alpha1.DataMoverCron{}
+				found := &datamoverv1alpha1.DataMoverSchedule{}
 				return k8sClient.Get(ctx, typeNamespacedName, found)
 			}, timeout, interval).Should(Succeed())
 		})
