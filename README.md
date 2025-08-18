@@ -18,7 +18,7 @@ So I wanted to create my own operator that would tick all the boxes for my needs
 |                               | DataMover | Velero               | VolSync | k8up |
 |-------------------------------|-----------|----------------------|---------|------|
 | Support encryption            | ⌛ (todo)        | ❌ (with static key)  | ✅       | ✅    |
-| Use Snapshot                  | ✅         | ✅                    | ❌       | ❌    |
+| Use Snapshot                  | ✅         | ✅                    | ✅       | ❌    |
 | Support multiple backup tools | ✅         | ❌                    | ❌       | ❌    |
 
 ## Description
