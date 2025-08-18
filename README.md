@@ -15,6 +15,12 @@ There are few projects that handle backups on Kubernetes (Velero, Volsync, k8up.
 
 So I wanted to create my own operator that would tick all the boxes for my needs. Hello DataMover Operator!
 
+|                               | DataMover | Velero               | VolSync | k8up |
+|-------------------------------|-----------|----------------------|---------|------|
+| Support encryption            | ⌛ (todo)        | ❌ (with static key)  | ✅       | ✅    |
+| Use Snapshot                  | ✅         | ✅                    | ❌       | ❌    |
+| Support multiple backup tools | ✅         | ❌                    | ❌       | ❌    |
+
 ## Description
 
 The DataMover Operator simplifies data movement and backup workflows in Kubernetes environments. It creates clones of existing PVCs and runs data synchronization jobs to remote storage backends (S3-compatible storage, cloud providers, etc.) using rclone.
