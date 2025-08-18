@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://qjoly.github.io/datamover-operator/</loc>
+         <lastmod>2025-08-18</lastmod>
+    </url>
+    <url>
+         <loc>https://qjoly.github.io/datamover-operator/automatic-cleanup/</loc>
+         <lastmod>2025-08-18</lastmod>
+    </url>
+    <url>
+         <loc>https://qjoly.github.io/datamover-operator/container-image-configuration/</loc>
+         <lastmod>2025-08-18</lastmod>
+    </url>
+    <url>
+         <loc>https://qjoly.github.io/datamover-operator/data-synchronization/</loc>
+         <lastmod>2025-08-18</lastmod>
+    </url>
+    <url>
+         <loc>https://qjoly.github.io/datamover-operator/metrics-and-monitoring/</loc>
+         <lastmod>2025-08-18</lastmod>
+    </url>
+    <url>
+         <loc>https://qjoly.github.io/datamover-operator/pvc-cloning/</loc>
+         <lastmod>2025-08-18</lastmod>
+    </url>
+    <url>
+         <loc>https://qjoly.github.io/datamover-operator/timestamp-organization/</loc>
+         <lastmod>2025-08-18</lastmod>
+    </url>
+</urlset>

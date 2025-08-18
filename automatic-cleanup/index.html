@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<title>Automatic Cleanup - Datamover Operator</title>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+<meta name="generator" content="mkdocs-1.6.1, mkdocs-gitbook-1.0.7">
+
+<link rel="shortcut icon" href="../images/favicon.ico" type="image/x-icon">
+<meta name="HandheldFriendly" content="true"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta rel="next" href="" />
+<link href="../css/style.min.css" rel="stylesheet"> 
+</head>
+
+<body>
+<div class="book">
+<div class="book-summary">
+<div id="book-search-input" role="search">
+<input type="text" placeholder="Type to search" />
+</div> <!-- end of book-search-input -->
+
+<nav role="navigation">
+<ul class="summary">
+<li>
+<a href=".." target="_blank" class="custom-link">Datamover Operator</a>
+</li>
+<li class="divider"></li>
+<li class="chapter" data-path="">
+<a href="..">Welcome aboard!</a>
+<li class="chapter active" data-path="automatic-cleanup/">
+<a href="./">Automatic Cleanup</a>
+<li class="chapter" data-path="container-image-configuration/">
+<a href="../container-image-configuration/">Container Image Configuration</a>
+<li class="chapter" data-path="data-synchronization/">
+<a href="../data-synchronization/">Data Synchronization</a>
+<li class="chapter" data-path="metrics-and-monitoring/">
+<a href="../metrics-and-monitoring/">Metrics and Monitoring</a>
+<li class="chapter" data-path="pvc-cloning/">
+<a href="../pvc-cloning/">PVC Cloning</a>
+<li class="chapter" data-path="timestamp-organization/">
+<a href="../timestamp-organization/">Timestamp Organization</a>
+<li class="divider"></li>
+
+
+
+<li><a href="http://www.mkdocs.org">
+Published with MkDocs
+</a></li>
+
+<li><a href="https://github.com/GitbookIO/theme-default">
+Theme by GitBook
+</a></li>
+</ul>
+
+</nav>
+
+</div> <!-- end of book-summary -->
+
+<div class="book-body">
+<div class="body-inner">
+<div class="book-header" role="navigation">
+
+<!-- Title -->
+<h1>
+<i class="fa fa-circle-o-notch fa-spin"></i>
+<a href="." ></a>
+</h1>
+
+</div> <!-- end of book-header -->
+
+<div class="page-wrapper" tabindex="-1" role="main">
+<div class="page-inner">
+<div id="book-search-results">
+<div class="search-noresults">
+
+<section class="normal markdown-section">
+
+
+
+<h1 id="automatic-cleanup">Automatic Cleanup</h1>
+<p>This document explains the automatic PVC cleanup feature that removes cloned PVCs after successful backup operations, helping to manage storage resources efficiently.</p>
+<h2 id="overview">Overview</h2>
+<p>The automatic cleanup feature allows the DataMover Operator to automatically delete cloned PVCs after successful data synchronization. This helps prevent storage waste, reduces operational overhead, and maintains a clean Kubernetes environment.</p>
+<h2 id="feature-configuration">Feature Configuration</h2>
+<h3 id="enabling-automatic-cleanup">Enabling Automatic Cleanup</h3>
+<p>Enable automatic cleanup in your DataMover specification:</p>
+<pre><code class="language-yaml">apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  name: auto-cleanup-backup
+spec:
+  sourcePvc: &quot;app-data&quot;
+  secretName: &quot;storage-credentials&quot;
+  deletePvcAfterBackup: true  # Enable automatic cleanup
+</code></pre>
+<h3 id="disabling-automatic-cleanup">Disabling Automatic Cleanup</h3>
+<p>Keep cloned PVCs for manual management:</p>
+<pre><code class="language-yaml">apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  name: manual-cleanup-backup
+spec:
+  sourcePvc: &quot;app-data&quot;
+  secretName: &quot;storage-credentials&quot;
+  deletePvcAfterBackup: false  # Disable automatic cleanup
+</code></pre>
+<p><strong>Default Behavior</strong>: <code>deletePvcAfterBackup: false</code></p>
+<h2 id="cleanup-workflow">Cleanup Workflow</h2>
+<h3 id="phase-progression">Phase Progression</h3>
+<p>When automatic cleanup is enabled, the DataMover follows this workflow:</p>
+<ol>
+<li><strong>CreatingClonedPVC</strong>: Create clone of source PVC</li>
+<li><strong>ClonedPVCReady</strong>: Clone is bound and ready</li>
+<li><strong>CreatingPod</strong>: Execute rclone job for data sync</li>
+<li><strong>CleaningUp</strong>: Delete cloned PVC (if <code>deletePvcAfterBackup: true</code>)</li>
+<li><strong>Completed</strong>: Operation finished successfully</li>
+</ol>
+<h3 id="phase-progression-without-cleanup">Phase Progression Without Cleanup</h3>
+<p>When automatic cleanup is disabled:</p>
+<ol>
+<li><strong>CreatingClonedPVC</strong>: Create clone of source PVC</li>
+<li><strong>ClonedPVCReady</strong>: Clone is bound and ready</li>
+<li><strong>CreatingPod</strong>: Execute rclone job for data sync</li>
+<li><strong>Completed</strong>: Operation finished (clone PVC remains)</li>
+</ol>
+<h3 id="cleanup-trigger">Cleanup Trigger</h3>
+<p>Cleanup is triggered only after:</p>
+<ul>
+<li>✅ <strong>Successful job completion</strong>: Rclone job completes successfully</li>
+<li>✅ <strong>Data sync verification</strong>: Sync operation reports success</li>
+<li>✅ <strong>Status confirmation</strong>: Job status shows completion</li>
+</ul>
+<p>Cleanup is <strong>NOT</strong> triggered when:</p>
+<ul>
+<li>❌ <strong>Job fails</strong>: Any failure prevents cleanup</li>
+<li>❌ <strong>Sync errors</strong>: Data synchronization errors prevent cleanup</li>
+<li>❌ <strong>Operator errors</strong>: Internal operator errors prevent cleanup</li>
+</ul>
+<h2 id="implementation-details">Implementation Details</h2>
+<h3 id="cleanup-logic">Cleanup Logic</h3>
+<p>The cleanup process involves:</p>
+<pre><code class="language-go">// Simplified cleanup logic
+func (r *DataMoverReconciler) cleanupClonedPVC(ctx context.Context, dm *datamoverv1alpha1.DataMover) {
+    if dm.Status.RestoredPVCName == &quot;&quot; {
+        // No PVC to cleanup
+        return
+    }
+
+    // Delete the cloned PVC
+    pvc := &amp;corev1.PersistentVolumeClaim{
+        ObjectMeta: metav1.ObjectMeta{
+            Name:      dm.Status.RestoredPVCName,
+            Namespace: dm.Namespace,
+        },
+    }
+
+    if err := r.Delete(ctx, pvc); err != nil {
+        // Handle deletion error
+        return err
+    }
+
+    // Record cleanup metrics
+    metrics.RecordCleanupOperation(&quot;success&quot;, dm.Namespace)
+}
+</code></pre>
+<h3 id="error-handling">Error Handling</h3>
+<p>If cleanup fails:</p>
+<ul>
+<li><strong>Retry</strong>: Cleanup is retried on subsequent reconciliation</li>
+<li><strong>Logging</strong>: Failure is logged with detailed error information</li>
+<li><strong>Metrics</strong>: Cleanup failure is recorded in metrics</li>
+<li><strong>Status</strong>: DataMover phase remains "CleaningUp" until successful</li>
+</ul>
+<h3 id="safety-mechanisms">Safety Mechanisms</h3>
+<p>The cleanup process includes safety checks:</p>
+<ol>
+<li><strong>PVC Ownership</strong>: Only delete PVCs created by the operator</li>
+<li><strong>Status Verification</strong>: Confirm successful job completion before cleanup</li>
+<li><strong>Error Recovery</strong>: Handle partial cleanup scenarios gracefully</li>
+</ol>
+<h2 id="benefits">Benefits</h2>
+<h3 id="storage-management">Storage Management</h3>
+<p>Automatic cleanup provides:</p>
+<ul>
+<li><strong>Cost Reduction</strong>: Eliminates storage costs for temporary clones</li>
+<li><strong>Resource Efficiency</strong>: Prevents storage quota exhaustion</li>
+<li><strong>Clean Environment</strong>: Maintains organized Kubernetes resources</li>
+</ul>
+<h3 id="operational-benefits">Operational Benefits</h3>
+<ul>
+<li><strong>Reduced Manual Work</strong>: No need for manual PVC cleanup</li>
+<li><strong>Consistent Behavior</strong>: Predictable resource lifecycle</li>
+<li><strong>Automation</strong>: Fits well into automated backup workflows</li>
+</ul>
+<h3 id="example-storage-savings">Example Storage Savings</h3>
+<p>Consider a backup operation for a 100GB PVC:</p>
+<p><strong>Without Cleanup</strong>:</p>
+<pre><code class="language-text">Original PVC:  100GB (permanent)
+Clone PVC:     100GB (remains after backup)
+Total Usage:   200GB
+</code></pre>
+<p><strong>With Cleanup</strong>:</p>
+<pre><code class="language-text">Original PVC:  100GB (permanent)
+Clone PVC:     100GB (deleted after backup)
+Total Usage:   100GB after completion
+</code></pre>
+<p><strong>Savings</strong>: 50% storage reduction per backup operation</p>
+<h2 id="monitoring-cleanup-operations">Monitoring Cleanup Operations</h2>
+<h3 id="metrics">Metrics</h3>
+<p>The operator provides Prometheus metrics for cleanup operations:</p>
+<pre><code class="language-prometheus"># Cleanup operation counters
+datamover_cleanup_operations_total{status=&quot;success&quot;, namespace=&quot;default&quot;}
+datamover_cleanup_operations_total{status=&quot;failure&quot;, namespace=&quot;default&quot;}
+
+# Phase duration including cleanup
+datamover_phase_duration_seconds{phase=&quot;CleaningUp&quot;, namespace=&quot;default&quot;}
+</code></pre>
+<h3 id="status-tracking">Status Tracking</h3>
+<p>Monitor cleanup through DataMover status:</p>
+<pre><code class="language-bash"># Watch cleanup progress
+kubectl get datamover my-backup -w
+
+# Check detailed status
+kubectl describe datamover my-backup
+</code></pre>
+<p>Expected output during cleanup:</p>
+<pre><code class="language-yaml">status:
+  phase: &quot;CleaningUp&quot;
+  restoredPvcName: &quot;restored-app-data-20240806143052&quot;
+</code></pre>
+<h3 id="logging">Logging</h3>
+<p>Monitor cleanup operations through operator logs:</p>
+<pre><code class="language-bash"># View cleanup logs
+kubectl logs -n datamover-operator-system deployment/datamover-operator-controller-manager | grep -i cleanup
+
+# Example log entries
+# INFO Cleaning up cloned PVC {&quot;pvc&quot;: &quot;restored-app-data-20240806143052&quot;}
+# INFO Successfully deleted cloned PVC {&quot;pvc&quot;: &quot;restored-app-data-20240806143052&quot;}
+</code></pre>
+<h2 id="use-cases">Use Cases</h2>
+<h3 id="1-automated-backup-workflows">1. Automated Backup Workflows</h3>
+<p>Perfect for scheduled backups where clones are temporary:</p>
+<pre><code class="language-yaml">apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  name: nightly-backup
+spec:
+  sourcePvc: &quot;production-data&quot;
+  secretName: &quot;backup-credentials&quot;
+  deletePvcAfterBackup: true
+  addTimestampPrefix: true
+</code></pre>
+<p><strong>Workflow</strong>:
+1. Clone production PVC
+2. Sync to timestamped backup location
+3. Automatically delete clone
+4. Preserve only original PVC</p>
+<h3 id="2-development-environment-snapshots">2. Development Environment Snapshots</h3>
+<p>For development workflows where clones are not needed after sync:</p>
+<pre><code class="language-yaml">apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  name: dev-snapshot
+spec:
+  sourcePvc: &quot;dev-workspace&quot;
+  secretName: &quot;dev-storage&quot;
+  deletePvcAfterBackup: true
+</code></pre>
+<h3 id="3-compliance-backups">3. Compliance Backups</h3>
+<p>For compliance where only the backup copy matters:</p>
+<pre><code class="language-yaml">apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  name: compliance-backup
+spec:
+  sourcePvc: &quot;financial-records&quot;
+  secretName: &quot;compliance-storage&quot;
+  deletePvcAfterBackup: true
+  addTimestampPrefix: true
+</code></pre>
+<h2 id="when-not-to-use-cleanup">When NOT to Use Cleanup</h2>
+<h3 id="1-clone-analysis-workflows">1. Clone Analysis Workflows</h3>
+<p>When you need to analyze or compare cloned data:</p>
+<pre><code class="language-yaml">apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  name: data-analysis
+spec:
+  sourcePvc: &quot;production-data&quot;
+  secretName: &quot;storage-credentials&quot;
+  deletePvcAfterBackup: false  # Keep clone for analysis
+</code></pre>
+<h3 id="2-multi-stage-backups">2. Multi-Stage Backups</h3>
+<p>When clones are used in multiple backup stages:</p>
+<pre><code class="language-yaml"># First stage: Create clone and initial backup
+apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  name: stage1-backup
+spec:
+  sourcePvc: &quot;app-data&quot;
+  secretName: &quot;primary-storage&quot;
+  deletePvcAfterBackup: false  # Keep for stage 2
+
+# Second stage: Use same clone for secondary backup
+# (would reference the same cloned PVC)
+</code></pre>
+<h3 id="3-debugging-scenarios">3. Debugging Scenarios</h3>
+<p>When troubleshooting backup issues:</p>
+<pre><code class="language-yaml">apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  name: debug-backup
+spec:
+  sourcePvc: &quot;problematic-data&quot;
+  secretName: &quot;storage-credentials&quot;
+  deletePvcAfterBackup: false  # Keep clone for debugging
+</code></pre>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-issues">Common Issues</h3>
+<h4 id="1-cleanup-stuck-in-progress">1. Cleanup Stuck in Progress</h4>
+<p><strong>Symptoms</strong>: DataMover phase remains "CleaningUp"</p>
+<p><strong>Possible Causes</strong>:
+- PVC has active pod attachments
+- PVC finalizers preventing deletion
+- RBAC permission issues</p>
+<p><strong>Diagnosis</strong>:</p>
+<pre><code class="language-bash"># Check PVC status
+kubectl get pvc &lt;cloned-pvc-name&gt;
+
+# Check for attached pods
+kubectl get pods --all-namespaces -o wide | grep &lt;cloned-pvc-name&gt;
+
+# Check PVC finalizers
+kubectl get pvc &lt;cloned-pvc-name&gt; -o yaml | grep finalizers
+
+# Check operator permissions
+kubectl auth can-i delete persistentvolumeclaims --as=system:serviceaccount:datamover-operator-system:datamover-operator-controller-manager
+</code></pre>
+<h4 id="2-cleanup-fails-after-successful-sync">2. Cleanup Fails After Successful Sync</h4>
+<p><strong>Symptoms</strong>: Job succeeds but cleanup fails</p>
+<p><strong>Possible Causes</strong>:
+- PVC in use by other processes
+- Storage class deletion policies
+- Volume attachment issues</p>
+<p><strong>Solutions</strong>:</p>
+<pre><code class="language-bash"># Force PVC deletion (if safe)
+kubectl patch pvc &lt;cloned-pvc-name&gt; -p '{&quot;metadata&quot;:{&quot;finalizers&quot;:[]}}' --type=merge
+
+# Check for volume attachments
+kubectl get volumeattachment | grep &lt;pv-name&gt;
+</code></pre>
+<h4 id="3-metrics-not-recording-cleanup">3. Metrics Not Recording Cleanup</h4>
+<p><strong>Symptoms</strong>: Cleanup happens but metrics not updated</p>
+<p><strong>Diagnosis</strong>:</p>
+<pre><code class="language-bash"># Check operator logs for metric errors
+kubectl logs -n datamover-operator-system deployment/datamover-operator-controller-manager | grep -i metric
+
+# Verify Prometheus scraping
+curl http://operator-metrics-service:8080/metrics | grep cleanup
+</code></pre>
+<h3 id="debug-commands">Debug Commands</h3>
+<pre><code class="language-bash"># Monitor cleanup process
+kubectl get datamover &lt;name&gt; -w
+
+# Check cleanup logs
+kubectl logs -n datamover-operator-system deployment/datamover-operator-controller-manager | grep -i &quot;cleanup\|delete&quot;
+
+# List PVCs created by operator
+kubectl get pvc -l app.kubernetes.io/created-by=datamover-operator
+
+# Check PVC deletion events
+kubectl get events --field-selector involvedObject.kind=PersistentVolumeClaim
+</code></pre>
+<h2 id="best-practices">Best Practices</h2>
+<h3 id="1-resource-planning">1. Resource Planning</h3>
+<p>Consider cleanup in resource planning:</p>
+<ul>
+<li><strong>Temporary Storage</strong>: Plan for peak usage during clone creation</li>
+<li><strong>Cleanup Timing</strong>: Consider cleanup duration in scheduling</li>
+<li><strong>Quota Management</strong>: Account for temporary storage quota usage</li>
+</ul>
+<h3 id="2-monitoring">2. Monitoring</h3>
+<p>Set up monitoring for cleanup operations:</p>
+<pre><code class="language-yaml"># Example Prometheus alert
+groups:
+- name: datamover.cleanup
+  rules:
+  - alert: DataMoverCleanupFailing
+    expr: increase(datamover_cleanup_operations_total{status=&quot;failure&quot;}[5m]) &gt; 0
+    for: 0m
+    labels:
+      severity: warning
+    annotations:
+      summary: &quot;DataMover cleanup operations are failing&quot;
+      description: &quot;DataMover cleanup failures in namespace {{ $labels.namespace }}&quot;
+</code></pre>
+<h3 id="3-backup-verification">3. Backup Verification</h3>
+<p>Always verify backup success before cleanup:</p>
+<pre><code class="language-bash"># Verify backup exists before cleanup completes
+rclone lsd s3:my-bucket/ | grep $(date +%Y-%m-%d)
+</code></pre>
+<h3 id="4-testing">4. Testing</h3>
+<p>Test cleanup behavior:</p>
+<pre><code class="language-yaml"># Test cleanup with small PVC
+apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  name: cleanup-test
+spec:
+  sourcePvc: &quot;test-data&quot;
+  secretName: &quot;test-credentials&quot;
+  deletePvcAfterBackup: true
+</code></pre>
+<h3 id="5-documentation">5. Documentation</h3>
+<p>Document cleanup policies in your backup procedures:</p>
+<ul>
+<li>When cleanup is enabled/disabled</li>
+<li>Storage impact of cleanup decisions</li>
+<li>Recovery procedures if cleanup fails</li>
+</ul>
+<h2 id="advanced-scenarios">Advanced Scenarios</h2>
+<h3 id="conditional-cleanup">Conditional Cleanup</h3>
+<p>Implement conditional cleanup based on backup verification:</p>
+<pre><code class="language-yaml"># Example: Only cleanup after backup verification
+apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  name: verified-cleanup
+spec:
+  sourcePvc: &quot;critical-data&quot;
+  secretName: &quot;storage-credentials&quot;
+  deletePvcAfterBackup: true
+  additionalEnv:
+    - name: &quot;VERIFY_BACKUP&quot;
+      value: &quot;true&quot;
+</code></pre>
+<h3 id="multi-destination-cleanup">Multi-Destination Cleanup</h3>
+<p>When backing up to multiple destinations:</p>
+<pre><code class="language-yaml"># Primary backup with cleanup
+apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  name: primary-backup
+spec:
+  sourcePvc: &quot;important-data&quot;
+  secretName: &quot;primary-storage&quot;
+  deletePvcAfterBackup: false  # Keep for secondary backup
+
+# Secondary backup without cleanup  
+apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  name: secondary-backup
+spec:
+  sourcePvc: &quot;important-data&quot;  # Same source
+  secretName: &quot;secondary-storage&quot;
+  deletePvcAfterBackup: true   # Cleanup after both complete
+</code></pre>
+<h3 id="cleanup-with-lifecycle-management">Cleanup with Lifecycle Management</h3>
+<p>Integrate with external lifecycle management:</p>
+<pre><code class="language-bash">#!/bin/bash
+# External cleanup verification script
+
+NAMESPACE=&quot;default&quot;
+DATAMOVER_NAME=&quot;my-backup&quot;
+
+# Wait for backup completion
+kubectl wait --for=condition=Complete datamover/$DATAMOVER_NAME -n $NAMESPACE --timeout=3600s
+
+# Verify backup in storage
+if rclone check s3:my-bucket/latest/ /verify/path/; then
+    echo &quot;Backup verified, cleanup can proceed&quot;
+else
+    echo &quot;Backup verification failed, manual intervention required&quot;
+    exit 1
+fi
+</code></pre>
+<p>This comprehensive documentation covers all aspects of the automatic cleanup feature, providing users with the knowledge needed to effectively use and troubleshoot this functionality.</p>
+
+
+</section>
+</div> <!-- end of search-noresults -->
+<div class="search-results">
+<div class="has-results">
+
+<h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+<ul class="search-results-list"></ul>
+
+</div> <!-- end of has-results -->
+<div class="no-results">
+
+<h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+
+</div> <!-- end of no-results -->
+</div> <!-- end of search-results -->
+</div> <!-- end of book-search-results -->
+
+</div> <!-- end of page-inner -->
+</div> <!-- end of page-wrapper -->
+
+</div> <!-- end of body-inner -->
+
+</div> <!-- end of book-body -->
+<script src="../js/main.js"></script>
+<script src="../search/main.js"></script>
+<script src="../js/gitbook.min.js"></script>
+<script src="../js/theme.min.js"></script>
+</body>
+</html>

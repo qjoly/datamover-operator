@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<title>Metrics and Monitoring - Datamover Operator</title>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+<meta name="generator" content="mkdocs-1.6.1, mkdocs-gitbook-1.0.7">
+
+<link rel="shortcut icon" href="../images/favicon.ico" type="image/x-icon">
+<meta name="HandheldFriendly" content="true"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta rel="next" href="" />
+<link href="../css/style.min.css" rel="stylesheet"> 
+</head>
+
+<body>
+<div class="book">
+<div class="book-summary">
+<div id="book-search-input" role="search">
+<input type="text" placeholder="Type to search" />
+</div> <!-- end of book-search-input -->
+
+<nav role="navigation">
+<ul class="summary">
+<li>
+<a href=".." target="_blank" class="custom-link">Datamover Operator</a>
+</li>
+<li class="divider"></li>
+<li class="chapter" data-path="">
+<a href="..">Welcome aboard!</a>
+<li class="chapter" data-path="automatic-cleanup/">
+<a href="../automatic-cleanup/">Automatic Cleanup</a>
+<li class="chapter" data-path="container-image-configuration/">
+<a href="../container-image-configuration/">Container Image Configuration</a>
+<li class="chapter" data-path="data-synchronization/">
+<a href="../data-synchronization/">Data Synchronization</a>
+<li class="chapter active" data-path="metrics-and-monitoring/">
+<a href="./">Metrics and Monitoring</a>
+<li class="chapter" data-path="pvc-cloning/">
+<a href="../pvc-cloning/">PVC Cloning</a>
+<li class="chapter" data-path="timestamp-organization/">
+<a href="../timestamp-organization/">Timestamp Organization</a>
+<li class="divider"></li>
+
+
+
+<li><a href="http://www.mkdocs.org">
+Published with MkDocs
+</a></li>
+
+<li><a href="https://github.com/GitbookIO/theme-default">
+Theme by GitBook
+</a></li>
+</ul>
+
+</nav>
+
+</div> <!-- end of book-summary -->
+
+<div class="book-body">
+<div class="body-inner">
+<div class="book-header" role="navigation">
+
+<!-- Title -->
+<h1>
+<i class="fa fa-circle-o-notch fa-spin"></i>
+<a href="." ></a>
+</h1>
+
+</div> <!-- end of book-header -->
+
+<div class="page-wrapper" tabindex="-1" role="main">
+<div class="page-inner">
+<div id="book-search-results">
+<div class="search-noresults">
+
+<section class="normal markdown-section">
+
+
+
+<h1 id="metrics-and-monitoring">Metrics and Monitoring</h1>
+<p>This document covers the comprehensive Prometheus metrics and monitoring capabilities provided by the DataMover Operator.</p>
+<h2 id="overview">Overview</h2>
+<p>The DataMover Operator provides detailed Prometheus metrics for monitoring backup operations, performance tracking, and operational observability. These metrics enable effective monitoring, alerting, and troubleshooting of data movement operations.</p>
+<h2 id="available-metrics">Available Metrics</h2>
+<h3 id="operation-metrics">Operation Metrics</h3>
+<h4 id="datamover_operations_total"><code>datamover_operations_total</code></h4>
+<p>Counter tracking total operations by phase and status.</p>
+<p><strong>Labels</strong>:
+- <code>phase</code>: Operation phase (CreatingClonedPVC, CreatingPod, CleaningUp)
+- <code>status</code>: Operation status (started, success, failure)
+- <code>namespace</code>: Kubernetes namespace</p>
+<p><strong>Examples</strong>:</p>
+<pre><code class="language-prometheus">datamover_operations_total{phase=&quot;CreatingClonedPVC&quot;, status=&quot;started&quot;, namespace=&quot;default&quot;} 10
+datamover_operations_total{phase=&quot;CreatingClonedPVC&quot;, status=&quot;success&quot;, namespace=&quot;default&quot;} 9
+datamover_operations_total{phase=&quot;CreatingClonedPVC&quot;, status=&quot;failure&quot;, namespace=&quot;default&quot;} 1
+</code></pre>
+<h4 id="datamover_phase_duration_seconds"><code>datamover_phase_duration_seconds</code></h4>
+<p>Histogram tracking phase execution duration.</p>
+<p><strong>Labels</strong>:
+- <code>phase</code>: Operation phase
+- <code>namespace</code>: Kubernetes namespace</p>
+<p><strong>Buckets</strong>: 0.1, 0.5, 1, 2.5, 5, 10, 30, 60, 120, 300, 600, 1200, +Inf seconds</p>
+<p><strong>Examples</strong>:</p>
+<pre><code class="language-prometheus">datamover_phase_duration_seconds_bucket{phase=&quot;CreatingPod&quot;, namespace=&quot;default&quot;, le=&quot;300&quot;} 45
+datamover_phase_duration_seconds_sum{phase=&quot;CreatingPod&quot;, namespace=&quot;default&quot;} 12847.3
+datamover_phase_duration_seconds_count{phase=&quot;CreatingPod&quot;, namespace=&quot;default&quot;} 50
+</code></pre>
+<h3 id="cleanup-metrics">Cleanup Metrics</h3>
+<h4 id="datamover_cleanup_operations_total"><code>datamover_cleanup_operations_total</code></h4>
+<p>Counter tracking PVC cleanup operations.</p>
+<p><strong>Labels</strong>:
+- <code>status</code>: Cleanup status (success, failure)
+- <code>namespace</code>: Kubernetes namespace</p>
+<p><strong>Examples</strong>:</p>
+<pre><code class="language-prometheus">datamover_cleanup_operations_total{status=&quot;success&quot;, namespace=&quot;default&quot;} 25
+datamover_cleanup_operations_total{status=&quot;failure&quot;, namespace=&quot;default&quot;} 2
+</code></pre>
+<h3 id="job-metrics">Job Metrics</h3>
+<h4 id="datamover_pod_creation_operations_total"><code>datamover_pod_creation_operations_total</code></h4>
+<p>Counter tracking job/pod creation operations.</p>
+<p><strong>Labels</strong>:
+- <code>status</code>: Operation status (started, success, failure)
+- <code>namespace</code>: Kubernetes namespace</p>
+<p><strong>Examples</strong>:</p>
+<pre><code class="language-prometheus">datamover_pod_creation_operations_total{status=&quot;started&quot;, namespace=&quot;default&quot;} 30
+datamover_pod_creation_operations_total{status=&quot;success&quot;, namespace=&quot;default&quot;} 28
+datamover_pod_creation_operations_total{status=&quot;failure&quot;, namespace=&quot;default&quot;} 2
+</code></pre>
+<h4 id="datamover_data_sync_operations_total"><code>datamover_data_sync_operations_total</code></h4>
+<p>Counter tracking data synchronization operations.</p>
+<p><strong>Labels</strong>:
+- <code>status</code>: Sync status (success, failure)
+- <code>namespace</code>: Kubernetes namespace</p>
+<p><strong>Examples</strong>:</p>
+<pre><code class="language-prometheus">datamover_data_sync_operations_total{status=&quot;success&quot;, namespace=&quot;default&quot;} 25
+datamover_data_sync_operations_total{status=&quot;failure&quot;, namespace=&quot;default&quot;} 3
+</code></pre>
+<h2 id="metric-collection">Metric Collection</h2>
+<h3 id="prometheus-configuration">Prometheus Configuration</h3>
+<p>Configure Prometheus to scrape DataMover metrics:</p>
+<pre><code class="language-yaml"># prometheus.yml
+scrape_configs:
+  - job_name: 'datamover-operator'
+    static_configs:
+      - targets: ['datamover-operator-controller-manager-metrics-service:8080']
+    scrape_interval: 30s
+    metrics_path: /metrics
+</code></pre>
+<h3 id="servicemonitor-prometheus-operator">ServiceMonitor (Prometheus Operator)</h3>
+<p>For Prometheus Operator deployments:</p>
+<pre><code class="language-yaml">apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: datamover-operator
+  namespace: datamover-operator-system
+spec:
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  endpoints:
+  - port: https
+    scheme: https
+    path: /metrics
+    tlsConfig:
+      insecureSkipVerify: true
+</code></pre>
+<h3 id="manual-metric-access">Manual Metric Access</h3>
+<p>Access metrics directly:</p>
+<pre><code class="language-bash"># Port-forward to metrics endpoint
+kubectl port-forward -n datamover-operator-system service/datamover-operator-controller-manager-metrics-service 8080:8080
+
+# Query metrics
+curl http://localhost:8080/metrics | grep datamover
+</code></pre>
+<h2 id="monitoring-dashboards">Monitoring Dashboards</h2>
+<h3 id="grafana-dashboard-example">Grafana Dashboard Example</h3>
+<p>Create comprehensive Grafana dashboard:</p>
+<pre><code class="language-json">{
+  &quot;dashboard&quot;: {
+    &quot;title&quot;: &quot;DataMover Operator&quot;,
+    &quot;panels&quot;: [
+      {
+        &quot;title&quot;: &quot;Operation Success Rate&quot;,
+        &quot;type&quot;: &quot;stat&quot;,
+        &quot;targets&quot;: [
+          {
+            &quot;expr&quot;: &quot;rate(datamover_operations_total{status=\&quot;success\&quot;}[5m]) / rate(datamover_operations_total[5m]) * 100&quot;
+          }
+        ]
+      },
+      {
+        &quot;title&quot;: &quot;Phase Duration&quot;,
+        &quot;type&quot;: &quot;graph&quot;,
+        &quot;targets&quot;: [
+          {
+            &quot;expr&quot;: &quot;histogram_quantile(0.95, rate(datamover_phase_duration_seconds_bucket[5m]))&quot;
+          }
+        ]
+      },
+      {
+        &quot;title&quot;: &quot;Operations by Phase&quot;,
+        &quot;type&quot;: &quot;graph&quot;,
+        &quot;targets&quot;: [
+          {
+            &quot;expr&quot;: &quot;rate(datamover_operations_total[5m])&quot;
+          }
+        ]
+      }
+    ]
+  }
+}
+</code></pre>
+<h3 id="key-performance-indicators-kpis">Key Performance Indicators (KPIs)</h3>
+<p>Monitor these critical metrics:</p>
+<ol>
+<li><strong>Success Rate</strong>: Overall operation success percentage</li>
+<li><strong>Phase Duration</strong>: Time taken for each operation phase</li>
+<li><strong>Failure Rate</strong>: Operations failing per time period</li>
+<li><strong>Cleanup Success</strong>: PVC cleanup operation success rate</li>
+</ol>
+<h3 id="dashboard-panels">Dashboard Panels</h3>
+<h4 id="success-rate-panel">Success Rate Panel</h4>
+<pre><code class="language-promql"># Overall success rate
+rate(datamover_operations_total{status=&quot;success&quot;}[5m]) / 
+rate(datamover_operations_total[5m]) * 100
+</code></pre>
+<h4 id="average-phase-duration-panel">Average Phase Duration Panel</h4>
+<pre><code class="language-promql"># Average phase duration by phase
+rate(datamover_phase_duration_seconds_sum[5m]) / 
+rate(datamover_phase_duration_seconds_count[5m])
+</code></pre>
+<h4 id="operations-volume-panel">Operations Volume Panel</h4>
+<pre><code class="language-promql"># Operations per minute by phase
+rate(datamover_operations_total[1m]) * 60
+</code></pre>
+<h4 id="cleanup-success-rate-panel">Cleanup Success Rate Panel</h4>
+<pre><code class="language-promql"># Cleanup success rate
+rate(datamover_cleanup_operations_total{status=&quot;success&quot;}[5m]) / 
+rate(datamover_cleanup_operations_total[5m]) * 100
+</code></pre>
+<h2 id="alerting">Alerting</h2>
+<h3 id="prometheus-alerting-rules">Prometheus Alerting Rules</h3>
+<p>Configure alerts for operational issues:</p>
+<pre><code class="language-yaml">groups:
+- name: datamover.rules
+  rules:
+
+  # High failure rate alert
+  - alert: DataMoverHighFailureRate
+    expr: |
+      (
+        rate(datamover_operations_total{status=&quot;failure&quot;}[5m]) / 
+        rate(datamover_operations_total[5m])
+      ) &gt; 0.1
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: &quot;DataMover high failure rate&quot;
+      description: &quot;DataMover failure rate is above 10% in namespace {{ $labels.namespace }}&quot;
+
+  # Long-running operations alert
+  - alert: DataMoverLongRunningOperation
+    expr: |
+      histogram_quantile(0.95, rate(datamover_phase_duration_seconds_bucket[5m])) &gt; 1800
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: &quot;DataMover operations taking too long&quot;
+      description: &quot;95th percentile of DataMover operations exceeds 30 minutes&quot;
+
+  # Cleanup failures alert
+  - alert: DataMoverCleanupFailures
+    expr: |
+      rate(datamover_cleanup_operations_total{status=&quot;failure&quot;}[5m]) &gt; 0
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: &quot;DataMover cleanup operations failing&quot;
+      description: &quot;PVC cleanup operations are failing in namespace {{ $labels.namespace }}&quot;
+
+  # No operations alert (for scheduled backups)
+  - alert: DataMoverNoOperations
+    expr: |
+      rate(datamover_operations_total[1h]) == 0
+    for: 2h
+    labels:
+      severity: info
+    annotations:
+      summary: &quot;No DataMover operations detected&quot;
+      description: &quot;No DataMover operations in the last hour&quot;
+
+  # Job retry exhaustion alert
+  - alert: DataMoverJobRetriesExhausted
+    expr: |
+      rate(datamover_pod_creation_operations_total{status=&quot;failure&quot;}[5m]) &gt; 0
+    for: 0m
+    labels:
+      severity: critical
+    annotations:
+      summary: &quot;DataMover jobs exhausting retries&quot;
+      description: &quot;DataMover jobs are failing after all retry attempts&quot;
+</code></pre>
+<h3 id="alert-severity-levels">Alert Severity Levels</h3>
+<p><strong>Critical</strong>: Immediate attention required
+- Job retries exhausted
+- Complete operation failures
+- Security violations</p>
+<p><strong>Warning</strong>: Investigation needed
+- High failure rates
+- Performance degradation
+- Cleanup failures</p>
+<p><strong>Info</strong>: Awareness notifications
+- No operations detected
+- Configuration changes
+- Routine maintenance</p>
+<h2 id="performance-monitoring">Performance Monitoring</h2>
+<h3 id="baseline-metrics">Baseline Metrics</h3>
+<p>Establish baseline performance metrics:</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Typical Range</th>
+<th>Alert Threshold</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PVC Clone Creation</td>
+<td>30s - 5min</td>
+<td>&gt; 10min</td>
+</tr>
+<tr>
+<td>Job Execution</td>
+<td>1min - 30min</td>
+<td>&gt; 60min</td>
+</tr>
+<tr>
+<td>Cleanup Operation</td>
+<td>5s - 30s</td>
+<td>&gt; 2min</td>
+</tr>
+<tr>
+<td>Overall Success Rate</td>
+<td>&gt; 95%</td>
+<td>&lt; 90%</td>
+</tr>
+</tbody>
+</table>
+<h3 id="performance-queries">Performance Queries</h3>
+<h4 id="average-operation-duration">Average Operation Duration</h4>
+<pre><code class="language-promql"># Average duration by phase over last hour
+avg_over_time(
+  rate(datamover_phase_duration_seconds_sum[5m])[1h:5m]
+) / 
+avg_over_time(
+  rate(datamover_phase_duration_seconds_count[5m])[1h:5m]
+)
+</code></pre>
+<h4 id="success-rate-trend">Success Rate Trend</h4>
+<pre><code class="language-promql"># Success rate trend over 24 hours
+rate(datamover_operations_total{status=&quot;success&quot;}[1h]) / 
+rate(datamover_operations_total[1h])
+</code></pre>
+<h4 id="resource-utilization-correlation">Resource Utilization Correlation</h4>
+<pre><code class="language-promql"># Correlate phase duration with resource usage
+rate(datamover_phase_duration_seconds_sum[5m]) and on() 
+rate(container_cpu_usage_seconds_total{pod=~&quot;datamover-operator.*&quot;}[5m])
+</code></pre>
+
+
+</section>
+</div> <!-- end of search-noresults -->
+<div class="search-results">
+<div class="has-results">
+
+<h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+<ul class="search-results-list"></ul>
+
+</div> <!-- end of has-results -->
+<div class="no-results">
+
+<h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+
+</div> <!-- end of no-results -->
+</div> <!-- end of search-results -->
+</div> <!-- end of book-search-results -->
+
+</div> <!-- end of page-inner -->
+</div> <!-- end of page-wrapper -->
+
+</div> <!-- end of body-inner -->
+
+</div> <!-- end of book-body -->
+<script src="../js/main.js"></script>
+<script src="../search/main.js"></script>
+<script src="../js/gitbook.min.js"></script>
+<script src="../js/theme.min.js"></script>
+</body>
+</html>

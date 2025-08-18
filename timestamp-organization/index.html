@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<title>Timestamp Organization - Datamover Operator</title>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+<meta name="generator" content="mkdocs-1.6.1, mkdocs-gitbook-1.0.7">
+
+<link rel="shortcut icon" href="../images/favicon.ico" type="image/x-icon">
+<meta name="HandheldFriendly" content="true"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta rel="next" href="" />
+<link href="../css/style.min.css" rel="stylesheet"> 
+</head>
+
+<body>
+<div class="book">
+<div class="book-summary">
+<div id="book-search-input" role="search">
+<input type="text" placeholder="Type to search" />
+</div> <!-- end of book-search-input -->
+
+<nav role="navigation">
+<ul class="summary">
+<li>
+<a href=".." target="_blank" class="custom-link">Datamover Operator</a>
+</li>
+<li class="divider"></li>
+<li class="chapter" data-path="">
+<a href="..">Welcome aboard!</a>
+<li class="chapter" data-path="automatic-cleanup/">
+<a href="../automatic-cleanup/">Automatic Cleanup</a>
+<li class="chapter" data-path="container-image-configuration/">
+<a href="../container-image-configuration/">Container Image Configuration</a>
+<li class="chapter" data-path="data-synchronization/">
+<a href="../data-synchronization/">Data Synchronization</a>
+<li class="chapter" data-path="metrics-and-monitoring/">
+<a href="../metrics-and-monitoring/">Metrics and Monitoring</a>
+<li class="chapter" data-path="pvc-cloning/">
+<a href="../pvc-cloning/">PVC Cloning</a>
+<li class="chapter active" data-path="timestamp-organization/">
+<a href="./">Timestamp Organization</a>
+<li class="divider"></li>
+
+
+
+<li><a href="http://www.mkdocs.org">
+Published with MkDocs
+</a></li>
+
+<li><a href="https://github.com/GitbookIO/theme-default">
+Theme by GitBook
+</a></li>
+</ul>
+
+</nav>
+
+</div> <!-- end of book-summary -->
+
+<div class="book-body">
+<div class="body-inner">
+<div class="book-header" role="navigation">
+
+<!-- Title -->
+<h1>
+<i class="fa fa-circle-o-notch fa-spin"></i>
+<a href="." ></a>
+</h1>
+
+</div> <!-- end of book-header -->
+
+<div class="page-wrapper" tabindex="-1" role="main">
+<div class="page-inner">
+<div id="book-search-results">
+<div class="search-noresults">
+
+<section class="normal markdown-section">
+
+
+
+<h1 id="timestamp-organization">Timestamp Organization</h1>
+<p>This document explains the timestamp organization feature that allows for structured, time-based backup organization in remote storage.</p>
+<h2 id="overview">Overview</h2>
+<p>The timestamp organization feature creates timestamped folders in remote storage, enabling point-in-time backups, easier data management, and organized storage structures. When enabled, each backup operation creates a unique timestamp-prefixed directory.</p>
+<h2 id="feature-configuration">Feature Configuration</h2>
+<h3 id="enabling-timestamp-organization">Enabling Timestamp Organization</h3>
+<p>Enable timestamp prefixes in your DataMover specification:</p>
+<pre><code class="language-yaml">apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  name: timestamped-backup
+spec:
+  sourcePvc: &quot;app-data&quot;
+  secretName: &quot;storage-credentials&quot;
+  addTimestampPrefix: true  # Enable timestamp organization
+</code></pre>
+<h3 id="disabling-timestamp-organization">Disabling Timestamp Organization</h3>
+<p>For direct synchronization to bucket root:</p>
+<pre><code class="language-yaml">apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  name: direct-sync
+spec:
+  sourcePvc: &quot;app-data&quot;
+  secretName: &quot;storage-credentials&quot;
+  addTimestampPrefix: false  # Sync directly to bucket root
+</code></pre>
+<p><strong>Default Behavior</strong>: <code>addTimestampPrefix: false</code></p>
+<h2 id="timestamp-format">Timestamp Format</h2>
+<h3 id="format-specification">Format Specification</h3>
+<p>Timestamps use the format: <code>YYYY-MM-DD-HHMMSS</code></p>
+<ul>
+<li><strong>YYYY</strong>: 4-digit year</li>
+<li><strong>MM</strong>: 2-digit month (01-12)</li>
+<li><strong>DD</strong>: 2-digit day (01-31)</li>
+<li><strong>HH</strong>: 2-digit hour (00-23)</li>
+<li><strong>MM</strong>: 2-digit minute (00-59)</li>
+<li><strong>SS</strong>: 2-digit second (00-59)</li>
+</ul>
+<h3 id="examples">Examples</h3>
+<pre><code class="language-text">2024-08-06-143052  # August 6, 2024, 14:30:52
+2024-12-25-091500  # December 25, 2024, 09:15:00
+2025-01-01-000000  # January 1, 2025, 00:00:00
+</code></pre>
+<h3 id="timezone-considerations">Timezone Considerations</h3>
+<p>Timestamps are generated in <strong>UTC timezone</strong> to ensure consistency across different operator deployments and geographical locations.</p>
+<h2 id="storage-structure">Storage Structure</h2>
+<h3 id="with-timestamp-organization">With Timestamp Organization</h3>
+<p>When <code>addTimestampPrefix: true</code>:</p>
+<pre><code class="language-text">my-backup-bucket/
+├── 2024-08-06-143052/     # First backup
+│   ├── app/
+│   │   ├── config.yaml
+│   │   └── app.log
+│   ├── data/
+│   │   ├── database.db
+│   │   └── cache/
+│   └── logs/
+│       └── application.log
+├── 2024-08-06-151225/     # Second backup
+│   ├── app/
+│   │   ├── config.yaml
+│   │   └── app.log
+│   ├── data/
+│   │   ├── database.db
+│   │   └── cache/
+│   └── logs/
+│       └── application.log
+└── 2024-08-06-163408/     # Third backup
+    ├── app/
+    ├── data/
+    └── logs/
+</code></pre>
+<h3 id="without-timestamp-organization">Without Timestamp Organization</h3>
+<p>When <code>addTimestampPrefix: false</code>:</p>
+<pre><code class="language-text">my-backup-bucket/
+├── app/
+│   ├── config.yaml
+│   └── app.log
+├── data/
+│   ├── database.db
+│   └── cache/
+└── logs/
+    └── application.log
+</code></pre>
+<h2 id="use-cases">Use Cases</h2>
+<h3 id="1-point-in-time-recovery">1. Point-in-Time Recovery</h3>
+<p>Maintain multiple backup versions for recovery:</p>
+<pre><code class="language-yaml"># Daily backup with timestamps
+apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  name: daily-backup
+spec:
+  sourcePvc: &quot;production-data&quot;
+  secretName: &quot;s3-credentials&quot;
+  addTimestampPrefix: true
+</code></pre>
+<p><strong>Benefits</strong>:
+- Recovery to specific time points
+- Compare data between different backups
+- Rollback to previous known-good states</p>
+<h3 id="2-compliance-and-auditing">2. Compliance and Auditing</h3>
+<p>Maintain historical records for compliance:</p>
+<pre><code class="language-yaml"># Compliance backup with retention
+apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  name: compliance-backup
+spec:
+  sourcePvc: &quot;financial-data&quot;
+  secretName: &quot;secure-storage&quot;
+  addTimestampPrefix: true
+</code></pre>
+<p><strong>Benefits</strong>:
+- Immutable backup history
+- Audit trail of data changes
+- Regulatory compliance support</p>
+<h3 id="3-development-workflows">3. Development Workflows</h3>
+<p>Snapshot development environments:</p>
+<pre><code class="language-yaml"># Development snapshot
+apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  name: dev-snapshot
+spec:
+  sourcePvc: &quot;dev-workspace&quot;
+  secretName: &quot;dev-storage&quot;
+  addTimestampPrefix: true
+</code></pre>
+<p><strong>Benefits</strong>:
+- Environment versioning
+- Feature branch data isolation
+- Easy environment restoration</p>
+<h3 id="4-continuous-synchronization">4. Continuous Synchronization</h3>
+<p>For live synchronization without versioning:</p>
+<pre><code class="language-yaml"># Live sync without timestamps
+apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMover
+metadata:
+  name: live-sync
+spec:
+  sourcePvc: &quot;shared-data&quot;
+  secretName: &quot;sync-storage&quot;
+  addTimestampPrefix: false
+</code></pre>
+<p><strong>Benefits</strong>:
+- Real-time data replication
+- Mirror maintenance
+- Disaster recovery preparation</p>
+<h2 id="implementation-details">Implementation Details</h2>
+<h3 id="environment-variable">Environment Variable</h3>
+<p>The feature is controlled by the <code>ADD_TIMESTAMP_PREFIX</code> environment variable passed to the rclone container:</p>
+<pre><code class="language-bash"># When addTimestampPrefix: true
+ADD_TIMESTAMP_PREFIX=true
+
+# When addTimestampPrefix: false
+ADD_TIMESTAMP_PREFIX=false
+</code></pre>
+<h3 id="rclone-integration">Rclone Integration</h3>
+<p>The custom entrypoint script (<code>entrypoint.sh</code>) handles timestamp generation:</p>
+<pre><code class="language-bash">#!/bin/bash
+
+if [ &quot;$ADD_TIMESTAMP_PREFIX&quot; = &quot;true&quot; ]; then
+    # Generate timestamp in UTC
+    TIMESTAMP=$(date -u +&quot;%Y-%m-%d-%H%M%S&quot;)
+    DESTINATION=&quot;s3:${BUCKET_NAME}/${TIMESTAMP}/&quot;
+else
+    DESTINATION=&quot;s3:${BUCKET_NAME}/&quot;
+fi
+
+# Execute rclone sync
+rclone sync /data/ &quot;$DESTINATION&quot; --progress
+</code></pre>
+<h3 id="timestamp-generation">Timestamp Generation</h3>
+<p>Timestamps are generated at job execution time, ensuring:</p>
+<ul>
+<li><strong>Uniqueness</strong>: Each backup gets a unique timestamp</li>
+<li><strong>Consistency</strong>: UTC timezone for global consistency</li>
+<li><strong>Precision</strong>: Second-level precision for frequent backups</li>
+</ul>
+<h2 id="management-and-cleanup">Management and Cleanup</h2>
+<h3 id="listing-timestamped-backups">Listing Timestamped Backups</h3>
+<p>Use rclone or cloud provider tools to list backups:</p>
+<pre><code class="language-bash"># List all timestamped backups
+rclone lsd s3:my-bucket/
+
+# List backups for specific date
+rclone lsd s3:my-bucket/ | grep &quot;2024-08-06&quot;
+</code></pre>
+<h3 id="automated-cleanup">Automated Cleanup</h3>
+<p>Implement cleanup policies using cloud provider lifecycle rules:</p>
+<h4 id="aws-s3-lifecycle-policy">AWS S3 Lifecycle Policy</h4>
+<pre><code class="language-json">{
+    &quot;Rules&quot;: [
+        {
+            &quot;ID&quot;: &quot;DataMoverBackupRetention&quot;,
+            &quot;Status&quot;: &quot;Enabled&quot;,
+            &quot;Filter&quot;: {
+                &quot;Prefix&quot;: &quot;2025-&quot;
+            },
+            &quot;Expiration&quot;: {
+                &quot;Days&quot;: 30
+            }
+        }
+    ]
+}
+</code></pre>
+<h4 id="manual-cleanup-script">Manual Cleanup Script</h4>
+<pre><code class="language-bash">#!/bin/bash
+# Cleanup backups older than 30 days
+
+BUCKET=&quot;my-backup-bucket&quot;
+CUTOFF_DATE=$(date -d &quot;30 days ago&quot; +&quot;%Y-%m-%d&quot;)
+
+# List and delete old backups
+rclone lsd s3:$BUCKET/ | while read line; do
+    BACKUP_DATE=$(echo $line | awk '{print $5}' | cut -d'-' -f1-3)
+    if [[ &quot;$BACKUP_DATE&quot; &lt; &quot;$CUTOFF_DATE&quot; ]]; then
+        BACKUP_PATH=$(echo $line | awk '{print $5}')
+        echo &quot;Deleting old backup: $BACKUP_PATH&quot;
+        rclone purge s3:$BUCKET/$BACKUP_PATH/
+    fi
+done
+</code></pre>
+<h3 id="storage-cost-optimization">Storage Cost Optimization</h3>
+<p>Optimize storage costs with timestamped backups:</p>
+<ol>
+<li><strong>Lifecycle Policies</strong>: Move old backups to cheaper storage tiers</li>
+<li><strong>Compression</strong>: Enable compression for text-heavy data</li>
+<li><strong>Retention Policies</strong>: Implement appropriate retention periods</li>
+</ol>
+
+
+</section>
+</div> <!-- end of search-noresults -->
+<div class="search-results">
+<div class="has-results">
+
+<h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+<ul class="search-results-list"></ul>
+
+</div> <!-- end of has-results -->
+<div class="no-results">
+
+<h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+
+</div> <!-- end of no-results -->
+</div> <!-- end of search-results -->
+</div> <!-- end of book-search-results -->
+
+</div> <!-- end of page-inner -->
+</div> <!-- end of page-wrapper -->
+
+</div> <!-- end of body-inner -->
+
+</div> <!-- end of book-body -->
+<script src="../js/main.js"></script>
+<script src="../search/main.js"></script>
+<script src="../js/gitbook.min.js"></script>
+<script src="../js/theme.min.js"></script>
+</body>
+</html>
