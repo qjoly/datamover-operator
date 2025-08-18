@@ -19,7 +19,7 @@ So I wanted to create my own operator that would tick all the boxes for my needs
 |-------------------------------|-----------|----------------------|---------|------|
 | Support encryption            | ⌛ (todo)        | ❌ (with static key)  | ✅       | ✅    |
 | Use Snapshot                  | ✅         | ✅                    | ✅       | ❌    |
-| Support multiple backup tools | ✅         | ❌                    | ❌       | ❌    |
+| Support multiple backup tools | ✅         | ❌                    | ✅       | ❌    |
 
 ## Description
 
