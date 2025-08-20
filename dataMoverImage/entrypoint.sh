@@ -80,7 +80,7 @@ if [ "$POPULATION_MODE" == "true" ]; then
     echo "🎯 Destination: /data/"
     
     # For population, we copy from the source path to /data/
-    rclone copy "s3generic:$BUCKET_NAME/$SOURCE_PATH" /data/ -v || { echo "❌ Rclone population failed."; exit 1; }
+    rclone copy "s3generic:$BUCKET_NAME/$SOURCE_PATH" /data/ -v || { echo "❌ Rclone population failed."; sleep 3600; exit 1; }
     echo "🎉 Rclone population completed successfully."
 else
     # Original backup mode (local to remote)
