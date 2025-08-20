@@ -102,6 +102,6 @@ else
     echo "🔄 Starting rclone sync process..."
     echo "📂 Source: /data/"
     echo "🎯 Destination: $destination_path"
-    rclone sync /data/ "$destination_path" -v || { echo "❌ Rclone sync failed."; exit 1; }
+    rclone sync /data/ "$destination_path" -v || { echo "❌ Rclone sync failed."; sleep 3600; exit 1; }
     echo "🎉 Rclone sync completed successfully."
 fi
