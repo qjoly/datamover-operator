@@ -4,6 +4,7 @@
 resources:
 - bases/datamover.a-cup-of.coffee_datamovers.yaml
 - bases/datamover.a-cup-of.coffee_datamoverschedules.yaml
+- bases/datamover.a-cup-of.coffee_datamoverpopulators.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:
