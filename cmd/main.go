@@ -279,6 +279,15 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "DataMoverSchedule")
 		os.Exit(1)
 	}
+
+	if err := (&controller.DataMoverPopulatorReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+		Log:    ctrl.Log.WithName("controllers").WithName("DataMoverPopulator"),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "DataMoverPopulator")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	if metricsCertWatcher != nil {

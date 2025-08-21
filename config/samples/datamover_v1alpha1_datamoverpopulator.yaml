@@ -1,0 +1,47 @@
+apiVersion: datamover.a-cup-of.coffee/v1alpha1
+kind: DataMoverPopulator
+metadata:
+  name: restore-from-s3
+  namespace: default
+spec:
+  secretName: "s3-restore-credentials"
+  path: "s3://my-backup-bucket/production/database/2024-08-19-120000/"
+  image:
+    repository: "ghcr.io/qjoly/datamover-rclone"
+    tag: "v1.2.0"
+    pullPolicy: "IfNotPresent"
+  additionalEnv:
+    - name: "RESTORE_MODE"
+      value: "true"
+    - name: "COMPRESSION"
+      value: "gzip"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: s3-restore-credentials
+  namespace: default
+type: Opaque
+stringData:
+  AWS_ACCESS_KEY_ID: "your-access-key"
+  AWS_SECRET_ACCESS_KEY: "your-secret-key"
+  BUCKET_HOST: "s3.amazonaws.com"
+  BUCKET_NAME: "my-backup-bucket"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: restored-database-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  dataSourceRef:
+    apiGroup: datamover.a-cup-of.coffee
+    kind: DataMoverPopulator
+    name: restore-from-s3

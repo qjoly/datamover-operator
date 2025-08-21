@@ -61,21 +61,47 @@ rclone config create s3generic s3 \
 
 echo "✅ Rclone configuration completed successfully."
 
-# Determine destination path based on ADD_TIMESTAMP_PREFIX
-if [ "$ADD_TIMESTAMP_PREFIX" == "true" ]; then
-    timestamp=$(date "+%Y-%m-%d-%H%M%S")
-    destination_path="s3generic:$BUCKET_NAME/$timestamp/"
-    echo "📅 Timestamp prefix enabled. Destination: $destination_path"
+# Check if this is population mode (restore from remote to local)
+if [ "$POPULATION_MODE" == "true" ]; then
+    set -x
+    echo "🔄 Population mode enabled - restoring from remote storage"
+    
+    if [ -z "$SOURCE_PATH" ]; then
+        echo "❌ SOURCE_PATH must be set in population mode."
+        exit 1
+    fi
+    
+    echo "🔍 Testing rclone connection..."
+    rclone lsd s3generic:$BUCKET_NAME -vv || { echo "❌ Rclone connection test failed."; exit 1; }
+    echo "✅ Rclone connection test succeeded."
+    
+    echo "📥 Starting rclone population (restore) process..."
+    echo "📂 Source: $SOURCE_PATH"
+    echo "🎯 Destination: /data/"
+    
+    # For population, we copy from the source path to /data/
+    rclone copy "s3generic:$BUCKET_NAME/$SOURCE_PATH" /data/ -v || { echo "❌ Rclone population failed."; sleep 3600; exit 1; }
+    echo "🎉 Rclone population completed successfully."
 else
-    destination_path="s3generic:$BUCKET_NAME/"
-    echo "🔄 Using root destination: $destination_path"
-fi
+    # Original backup mode (local to remote)
+    echo "💾 Backup mode enabled - syncing to remote storage"
+    
+    # Determine destination path based on ADD_TIMESTAMP_PREFIX
+    if [ "$ADD_TIMESTAMP_PREFIX" == "true" ]; then
+        timestamp=$(date "+%Y-%m-%d-%H%M%S")
+        destination_path="s3generic:$BUCKET_NAME/$timestamp/"
+        echo "📅 Timestamp prefix enabled. Destination: $destination_path"
+    else
+        destination_path="s3generic:$BUCKET_NAME/"
+        echo "🔄 Using root destination: $destination_path"
+    fi
 
-echo "🔍 Testing rclone connection..."
-rclone lsd s3generic:$BUCKET_NAME -vv || { echo "❌ Rclone connection test failed."; exit 1; }
-echo "✅ Rclone connection test succeeded."
-echo "🔄 Starting rclone sync process..."
-echo "📂 Source: /data/"
-echo "🎯 Destination: $destination_path"
-rclone sync /data/ "$destination_path" -v || { echo "❌ Rclone sync failed."; exit 1; }
-echo "🎉 Rclone sync completed successfully."
+    echo "🔍 Testing rclone connection..."
+    rclone lsd s3generic:$BUCKET_NAME -vv || { echo "❌ Rclone connection test failed."; exit 1; }
+    echo "✅ Rclone connection test succeeded."
+    echo "🔄 Starting rclone sync process..."
+    echo "📂 Source: /data/"
+    echo "🎯 Destination: $destination_path"
+    rclone sync /data/ "$destination_path" -v || { echo "❌ Rclone sync failed."; sleep 3600; exit 1; }
+    echo "🎉 Rclone sync completed successfully."
+fi
